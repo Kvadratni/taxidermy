@@ -3,7 +3,7 @@
 /* Dark mode via .dark class on <html> */
 @variant dark (&:is(.dark *));
 
-@theme inline {
+@theme {
   /* === The Curated Ledger — Design System === */
 
   /* Surfaces */
@@ -48,9 +48,9 @@
 }
 
 /* === Dark mode overrides === */
+/* NOTE: color-scheme is intentionally omitted here — LightningCSS strips
+   any html.dark{} block that contains it. It's set via JS in ThemeProvider. */
 html.dark {
-  color-scheme: dark;
-
   /* Surfaces */
   --color-surface:           #141918;
   --color-surface-dim:       #0f1312;
