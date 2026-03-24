@@ -5,21 +5,18 @@ import { format } from 'date-fns';
 
 function FxAmount({ original, currency, fxRate }: { original: number; currency: string; fxRate: number }) {
   return (
-    <div className="text-xs mt-0.5" style={{ color: '#c0c8c3' }}>
+    <div className="text-xs mt-0.5 text-outline-variant">
       {currency} ${original.toFixed(2)} @ {fxRate.toFixed(4)}
     </div>
   );
 }
-
-// "Ghost border" fallback: outline-variant at 15% opacity
-const rowBorder = '1px solid rgba(192,200,195,0.15)';
 
 export default function Schedule3Report() {
   const dispositions = useAppStore((s) => s.dispositions);
 
   if (dispositions.length === 0) {
     return (
-      <div className="rounded-lg p-8 text-center text-sm text-secondary" style={{ background: '#f4f4f1' }}>
+      <div className="rounded-lg p-8 text-center text-sm text-secondary" style={{ background: 'var(--color-surface-low)' }}>
         No dispositions to display.
       </div>
     );
@@ -50,7 +47,7 @@ export default function Schedule3Report() {
       {foreignCurrencies.length > 0 && (
         <div
           className="mb-5 rounded-lg px-4 py-3 text-xs"
-          style={{ background: '#d5e6e2', color: '#00261b' }}
+          style={{ background: 'var(--color-secondary-container)', color: 'var(--color-primary)' }}
         >
           All amounts shown in <strong>CAD</strong>. Original values were in{' '}
           <strong>{foreignCurrencies.join(', ')}</strong> — converted using Bank of Canada historical rates.
@@ -58,10 +55,10 @@ export default function Schedule3Report() {
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-lg" style={{ background: '#f4f4f1' }}>
+      <div className="overflow-x-auto rounded-lg" style={{ background: 'var(--color-surface-low)' }}>
         <table className="w-full text-sm">
           <thead>
-            <tr style={{ borderBottom: rowBorder }}>
+            <tr style={{ borderBottom: `1px solid rgba(var(--color-outline-variant-raw), 0.15)` }}>
               {['Date', 'Description', 'Year Acq.', 'Proceeds', 'ACB', 'Outlays', 'Gain (Loss)', 'SL Denied'].map((h) => (
                 <th
                   key={h}
@@ -78,10 +75,10 @@ export default function Schedule3Report() {
               <tr
                 key={i}
                 style={{
-                  borderTop: rowBorder,
+                  borderTop: `1px solid rgba(var(--color-outline-variant-raw), 0.12)`,
                   background: d.isSuperficialLoss
-                    ? 'rgba(58,20,17,0.04)'
-                    : i % 2 === 0 ? '#f9f9f7' : '#f4f4f1',
+                    ? `rgba(var(--color-tertiary-raw), 0.04)`
+                    : i % 2 === 0 ? 'var(--color-surface)' : 'var(--color-surface-low)',
                 }}
               >
                 <td className="px-4 py-3 text-xs text-secondary">
@@ -94,7 +91,12 @@ export default function Schedule3Report() {
                   {' '}
                   <span
                     className="text-xs px-1.5 py-0.5 rounded"
-                    style={{ background: '#d5e6e2', color: '#00261b', fontFamily: 'var(--font-display)', fontWeight: 600 }}
+                    style={{
+                      background: 'var(--color-secondary-container)',
+                      color: 'var(--color-primary)',
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 600,
+                    }}
                   >
                     {d.transaction.quantity} sh
                   </span>
@@ -115,7 +117,7 @@ export default function Schedule3Report() {
                 <td className="px-4 py-3 text-right">
                   <span className="font-semibold text-on-surface">${d.acbOfSharesSold.toFixed(2)}</span>
                   {d.transaction.currency !== 'CAD' && d.transaction.glOriginalAcb !== undefined && (
-                    <div className="text-xs mt-0.5" style={{ color: '#c0c8c3' }}>
+                    <div className="text-xs mt-0.5 text-outline-variant">
                       {d.transaction.currency} ${d.transaction.glOriginalAcb.toFixed(2)} (acq. rate)
                     </div>
                   )}
@@ -123,21 +125,24 @@ export default function Schedule3Report() {
 
                 <td className="px-4 py-3 text-right text-on-surface">${d.outlays.toFixed(2)}</td>
 
-                <td className="px-4 py-3 text-right font-bold" style={{
-                  fontFamily: 'var(--font-display)',
-                  color: d.allowedGainLoss >= 0 ? '#00261b' : '#3a1411',
-                }}>
+                <td
+                  className="px-4 py-3 text-right font-bold"
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    color: d.allowedGainLoss >= 0 ? 'var(--color-primary)' : 'var(--color-loss)',
+                  }}
+                >
                   ${d.allowedGainLoss.toFixed(2)}
                 </td>
 
-                <td className="px-4 py-3 text-right text-xs" style={{ color: '#3a1411' }}>
+                <td className="px-4 py-3 text-right text-xs" style={{ color: 'var(--color-loss)' }}>
                   {d.isSuperficialLoss ? `$${d.superficialLoss.toFixed(2)}` : ''}
                 </td>
               </tr>
             ))}
           </tbody>
           <tfoot>
-            <tr style={{ borderTop: '1px solid rgba(192,200,195,0.4)' }}>
+            <tr style={{ borderTop: `1px solid rgba(var(--color-outline-variant-raw), 0.4)` }}>
               <td
                 colSpan={3}
                 className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-secondary"
@@ -154,13 +159,16 @@ export default function Schedule3Report() {
               <td className="px-4 py-3 text-right font-bold text-on-surface" style={{ fontFamily: 'var(--font-display)' }}>
                 ${totalOutlays.toFixed(2)}
               </td>
-              <td className="px-4 py-3 text-right font-extrabold" style={{
-                fontFamily: 'var(--font-display)',
-                color: totalGainLoss >= 0 ? '#00261b' : '#3a1411',
-              }}>
+              <td
+                className="px-4 py-3 text-right font-extrabold"
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  color: totalGainLoss >= 0 ? 'var(--color-primary)' : 'var(--color-loss)',
+                }}
+              >
                 ${totalGainLoss.toFixed(2)}
               </td>
-              <td className="px-4 py-3 text-right text-xs font-bold" style={{ color: '#3a1411' }}>
+              <td className="px-4 py-3 text-right text-xs font-bold" style={{ color: 'var(--color-loss)' }}>
                 {totalDenied > 0 ? `$${totalDenied.toFixed(2)}` : ''}
               </td>
             </tr>
@@ -169,7 +177,7 @@ export default function Schedule3Report() {
       </div>
 
       {totalDenied > 0 && (
-        <p className="mt-3 text-xs" style={{ color: '#3a1411' }}>
+        <p className="mt-3 text-xs" style={{ color: 'var(--color-loss)' }}>
           * Highlighted rows: superficial losses denied under ITA §54. Denied amounts added to ACB of remaining shares.
         </p>
       )}

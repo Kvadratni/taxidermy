@@ -1,19 +1,21 @@
 'use client';
 
 import { useAppStore } from '@/store/useAppStore';
-import { RotateCcw } from 'lucide-react';
+import { useTheme } from '@/components/providers/ThemeProvider';
+import { RotateCcw, Sun, Moon } from 'lucide-react';
 
 export default function Header() {
   const reset = useAppStore((s) => s.reset);
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <header
       className="sticky top-0 z-50"
       style={{
-        background: 'rgba(249, 249, 247, 0.84)',
+        background: `rgba(var(--color-surface-raw), 0.88)`,
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(192, 200, 195, 0.2)',
+        borderBottom: `1px solid rgba(var(--color-outline-variant-raw), 0.2)`,
       }}
     >
       <div className="mx-auto max-w-6xl flex items-center justify-between px-6 py-4">
@@ -32,13 +34,22 @@ export default function Header() {
           </p>
         </div>
 
-        <button
-          onClick={reset}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-on-surface-variant hover:text-primary transition-colors rounded"
-        >
-          <RotateCcw size={12} />
-          Start Over
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={toggleTheme}
+            className="flex items-center justify-center w-8 h-8 rounded text-on-surface-variant hover:text-primary transition-colors"
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+          </button>
+          <button
+            onClick={reset}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-on-surface-variant hover:text-primary transition-colors rounded"
+          >
+            <RotateCcw size={12} />
+            Start Over
+          </button>
+        </div>
       </div>
     </header>
   );

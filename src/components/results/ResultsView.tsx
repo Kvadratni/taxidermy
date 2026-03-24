@@ -30,7 +30,10 @@ export default function ResultsView() {
         {/* Floating action group */}
         <div
           className="flex items-center gap-2 rounded-lg px-4 py-2"
-          style={{ background: '#ffffff', boxShadow: '0 4px 16px rgba(15,30,28,0.08)' }}
+          style={{
+            background: 'var(--color-surface-lowest)',
+            boxShadow: `0 4px 16px rgba(var(--shadow-raw), 0.08)`,
+          }}
         >
           <button
             onClick={() => setStep('mapping')}
@@ -38,7 +41,10 @@ export default function ResultsView() {
           >
             Back
           </button>
-          <div className="w-px h-4" style={{ background: 'rgba(192,200,195,0.4)' }} />
+          <div
+            className="w-px h-4"
+            style={{ background: `rgba(var(--color-outline-variant-raw), 0.4)` }}
+          />
           <ExportButtons />
         </div>
       </div>
@@ -46,7 +52,10 @@ export default function ResultsView() {
       {/* Tax Summary — elevated */}
       <section
         className="rounded-lg p-7"
-        style={{ background: '#ffffff', boxShadow: '0 12px 40px rgba(15,30,28,0.06)' }}
+        style={{
+          background: 'var(--color-surface-lowest)',
+          boxShadow: `0 12px 40px rgba(var(--shadow-raw), 0.06)`,
+        }}
       >
         <TaxSummary />
       </section>
@@ -54,7 +63,10 @@ export default function ResultsView() {
       {/* Schedule 3 */}
       <section
         className="rounded-lg p-7"
-        style={{ background: '#ffffff', boxShadow: '0 12px 40px rgba(15,30,28,0.06)' }}
+        style={{
+          background: 'var(--color-surface-lowest)',
+          boxShadow: `0 12px 40px rgba(var(--shadow-raw), 0.06)`,
+        }}
       >
         <Schedule3Report />
       </section>
@@ -62,7 +74,10 @@ export default function ResultsView() {
       {/* Superficial loss details */}
       <section
         className="rounded-lg p-7"
-        style={{ background: '#ffffff', boxShadow: '0 12px 40px rgba(15,30,28,0.06)' }}
+        style={{
+          background: 'var(--color-surface-lowest)',
+          boxShadow: `0 12px 40px rgba(var(--shadow-raw), 0.06)`,
+        }}
       >
         <SuperficialLossDetails />
       </section>

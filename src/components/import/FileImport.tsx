@@ -47,20 +47,22 @@ export default function FileImport() {
         onDrop={onDrop}
         className="relative rounded-lg p-14 text-center transition-all"
         style={{
-          background: dragging ? 'rgba(188,237,215,0.18)' : '#f9f9f7',
-          border: `2px dashed ${dragging ? '#00261b' : 'rgba(192,200,195,0.5)'}`,
+          background: dragging
+            ? `rgba(var(--color-primary-fixed-raw), 0.18)`
+            : 'var(--color-surface)',
+          border: `2px dashed ${dragging ? 'var(--color-primary)' : `rgba(var(--color-outline-variant-raw), 0.5)`}`,
         }}
       >
         <FileSpreadsheet
           className="mx-auto mb-4"
           size={36}
-          style={{ color: dragging ? '#00261b' : '#c0c8c3' }}
+          style={{ color: dragging ? 'var(--color-primary)' : 'var(--color-outline-variant)' }}
         />
         <p className="text-sm font-medium text-on-surface">
           Drag and drop your file here, or{' '}
           <label
             className="cursor-pointer font-semibold underline underline-offset-2"
-            style={{ color: '#00261b' }}
+            style={{ color: 'var(--color-primary)' }}
           >
             browse
             <input
@@ -77,7 +79,10 @@ export default function FileImport() {
       {error && (
         <div
           className="mt-4 rounded-lg p-3 text-sm"
-          style={{ background: 'rgba(58,20,17,0.06)', color: '#3a1411' }}
+          style={{
+            background: `rgba(var(--color-tertiary-raw), 0.06)`,
+            color: 'var(--color-loss)',
+          }}
         >
           {error}
         </div>

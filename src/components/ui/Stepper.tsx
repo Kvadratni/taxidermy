@@ -30,7 +30,11 @@ export default function Stepper() {
               {i > 0 && (
                 <div
                   className="h-px w-8 transition-colors"
-                  style={{ background: isCompleted ? '#bcedd7' : 'rgba(192,200,195,0.4)' }}
+                  style={{
+                    background: isCompleted
+                      ? 'var(--color-primary-fixed)'
+                      : `rgba(var(--color-outline-variant-raw), 0.4)`,
+                  }}
                 />
               )}
 
@@ -41,8 +45,8 @@ export default function Stepper() {
                   ...(isCurrent
                     ? { background: 'linear-gradient(160deg,#00261b,#0b3d2e)', color: '#fff' }
                     : isCompleted
-                    ? { background: '#d5e6e2', color: '#00261b' }
-                    : { background: 'transparent', color: '#c0c8c3' }),
+                    ? { background: 'var(--color-secondary-container)', color: 'var(--color-primary)' }
+                    : { background: 'transparent', color: 'var(--color-outline-variant)' }),
                 }}
               >
                 <Icon size={12} />

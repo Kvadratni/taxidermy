@@ -37,12 +37,12 @@ export default function PasteImport() {
         placeholder={"Date\tAction\tSymbol\tQuantity\tPrice\tCommission\n2025-01-15\tBuy\tAAPL\t100\t150.00\t9.99"}
         className="w-full rounded-lg px-3 py-2 text-sm font-mono transition-all outline-none"
         style={{
-          background: '#ffffff',
-          border: '1px solid rgba(192,200,195,0.4)',
-          color: '#1a1c1b',
+          background: 'var(--color-surface-lowest)',
+          border: `1px solid rgba(var(--color-outline-variant-raw), 0.4)`,
+          color: 'var(--color-on-surface)',
         }}
-        onFocus={(e) => (e.currentTarget.style.background = 'rgba(188,237,215,0.15)')}
-        onBlur={(e)  => (e.currentTarget.style.background = '#ffffff')}
+        onFocus={(e) => (e.currentTarget.style.background = `rgba(var(--color-primary-fixed-raw), 0.1)`)}
+        onBlur={(e)  => (e.currentTarget.style.background = 'var(--color-surface-lowest)')}
       />
       <button
         onClick={handleParse}
@@ -56,7 +56,10 @@ export default function PasteImport() {
       {error && (
         <div
           className="mt-4 rounded-lg p-3 text-sm"
-          style={{ background: 'rgba(58,20,17,0.06)', color: '#3a1411' }}
+          style={{
+            background: `rgba(var(--color-tertiary-raw), 0.06)`,
+            color: 'var(--color-loss)',
+          }}
         >
           {error}
         </div>

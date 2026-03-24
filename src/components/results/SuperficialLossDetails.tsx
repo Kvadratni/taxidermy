@@ -11,11 +11,14 @@ export default function SuperficialLossDetails() {
 
   return (
     <div>
-      <h3 className="text-base font-semibold text-zinc-900 mb-3 flex items-center gap-2">
-        <AlertTriangle size={16} className="text-amber-500" />
+      <h3
+        className="text-base font-bold mb-3 flex items-center gap-2 text-on-surface"
+        style={{ fontFamily: 'var(--font-display)' }}
+      >
+        <AlertTriangle size={16} style={{ color: 'var(--color-loss)' }} />
         Superficial Losses ({superficialLosses.length})
       </h3>
-      <p className="text-xs text-zinc-500 mb-4">
+      <p className="text-xs text-secondary mb-4">
         Under ITA Section 54, capital losses are denied when you repurchase the same security
         within 30 days before or after the sale and still hold it 30 days after.
         The denied loss is added to the ACB of the replacement shares.
@@ -31,38 +34,51 @@ export default function SuperficialLossDetails() {
           return (
             <div
               key={i}
-              className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm"
+              className="rounded-lg p-4 text-sm"
+              style={{
+                background: 'var(--color-surface-low)',
+                border: `1px solid rgba(var(--color-tertiary-raw), 0.2)`,
+              }}
             >
-              <div className="font-medium text-zinc-900 mb-2">
-                {disp.transaction.symbol} - Sold {sl.sharesSold} shares
+              <div
+                className="font-bold mb-2 text-on-surface"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                {disp.transaction.symbol} — Sold {sl.sharesSold} shares
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                 <div>
-                  <div className="text-zinc-500">Shares Sold (S)</div>
-                  <div className="font-medium">{sl.sharesSold}</div>
+                  <div className="text-secondary mb-0.5">Shares Sold (S)</div>
+                  <div className="font-semibold text-on-surface">{sl.sharesSold}</div>
                 </div>
                 <div>
-                  <div className="text-zinc-500">Purchased in Window (P)</div>
-                  <div className="font-medium">{sl.sharesPurchasedInWindow}</div>
+                  <div className="text-secondary mb-0.5">Purchased in Window (P)</div>
+                  <div className="font-semibold text-on-surface">{sl.sharesPurchasedInWindow}</div>
                 </div>
                 <div>
-                  <div className="text-zinc-500">Held at Day +30 (B)</div>
-                  <div className="font-medium">{sl.sharesHeldAfter}</div>
+                  <div className="text-secondary mb-0.5">Held at Day +30 (B)</div>
+                  <div className="font-semibold text-on-surface">{sl.sharesHeldAfter}</div>
                 </div>
                 <div>
-                  <div className="text-zinc-500">Total Loss (L)</div>
-                  <div className="font-medium text-red-600">
+                  <div className="text-secondary mb-0.5">Total Loss (L)</div>
+                  <div className="font-semibold" style={{ color: 'var(--color-loss)' }}>
                     ${sl.totalLoss.toFixed(2)}
                   </div>
                 </div>
               </div>
-              <div className="mt-2 pt-2 border-t border-amber-200 text-xs">
-                <span className="text-zinc-500">Formula: </span>
-                <span className="font-mono">
+              <div
+                className="mt-2 pt-2 text-xs"
+                style={{ borderTop: `1px solid rgba(var(--color-outline-variant-raw), 0.2)` }}
+              >
+                <span className="text-secondary">Formula: </span>
+                <span className="font-mono text-on-surface-variant">
                   SL = min({sl.sharesSold}, {sl.sharesPurchasedInWindow},{' '}
                   {sl.sharesHeldAfter}) / {sl.sharesSold} * ${sl.totalLoss.toFixed(2)}
                 </span>
-                <span className="ml-2 font-semibold text-amber-700">
+                <span
+                  className="ml-2 font-semibold"
+                  style={{ color: 'var(--color-loss)', fontFamily: 'var(--font-display)' }}
+                >
                   = ${sl.deniedLoss.toFixed(2)} denied
                 </span>
               </div>

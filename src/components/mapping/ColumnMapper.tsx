@@ -50,14 +50,12 @@ export default function ColumnMapper() {
   useEffect(() => {
     if (!rawData) return;
 
-    // Try auto-detect
     const detection = detectFormat(rawData.headers);
     if (detection) {
       setDetectedName(detection.format);
       setDetectedFormat(detection.format);
       const gl = detection.mapping.glMode === true;
       setIsGlMode(gl);
-      // Convert mapping to assignments
       const auto: Record<number, string> = {};
       const m = detection.mapping;
       if (gl) {
@@ -80,7 +78,6 @@ export default function ColumnMapper() {
       setAssignments(auto);
     } else {
       setIsGlMode(false);
-      // Try fuzzy suggestion
       const suggestion = suggestMapping(rawData.headers);
       const auto: Record<number, string> = {};
       if (suggestion.date !== undefined) auto[suggestion.date] = 'date';
@@ -146,7 +143,6 @@ export default function ColumnMapper() {
     try {
       setColumnMapping(mapping);
 
-      // Map to transactions
       const { transactions, errors: mapErrors } = mapToTransactions(rawData, mapping);
       setErrors(mapErrors);
 
@@ -155,7 +151,6 @@ export default function ColumnMapper() {
         return;
       }
 
-      // FX conversion for non-CAD transactions
       const foreignTxns = transactions.filter((t) => t.currency !== 'CAD');
       if (foreignTxns.length > 0) {
         const currencies = [...new Set(foreignTxns.map((t) => t.currency))];
@@ -192,7 +187,6 @@ export default function ColumnMapper() {
       setFxStatus(null);
       setTransactions(transactions);
 
-      // Run calculation
       const result = calculateGains(transactions);
       setResults(result.dispositions, result.superficialLosses, result.acbSnapshots);
     } catch (err) {
@@ -225,7 +219,11 @@ export default function ColumnMapper() {
       {detectedName && (
         <div
           className="mb-4 flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium"
-          style={{ background: '#d5e6e2', color: '#00261b', fontFamily: 'var(--font-display)' }}
+          style={{
+            background: 'var(--color-secondary-container)',
+            color: 'var(--color-primary)',
+            fontFamily: 'var(--font-display)',
+          }}
         >
           <CheckCircle2 size={14} />
           Detected format: <strong>{detectedName}</strong>. Column mapping auto-populated.
@@ -242,7 +240,7 @@ export default function ColumnMapper() {
       {isGlMode && (
         <div
           className="mb-5 flex items-center gap-3 rounded-lg px-4 py-3"
-          style={{ background: '#f4f4f1' }}
+          style={{ background: 'var(--color-surface-low)' }}
         >
           <label
             className="text-xs font-bold uppercase tracking-wider text-secondary"
@@ -254,7 +252,11 @@ export default function ColumnMapper() {
             value={glCurrency}
             onChange={(e) => setGlCurrency(e.target.value)}
             className="rounded px-2 py-1 text-xs font-semibold text-on-surface outline-none"
-            style={{ background: '#ffffff', border: '1px solid rgba(192,200,195,0.4)', fontFamily: 'var(--font-display)' }}
+            style={{
+              background: 'var(--color-surface-lowest)',
+              border: `1px solid rgba(var(--color-outline-variant-raw), 0.4)`,
+              fontFamily: 'var(--font-display)',
+            }}
           >
             <option value="USD">USD — US Dollar</option>
             <option value="CAD">CAD — Canadian Dollar</option>
@@ -272,11 +274,11 @@ export default function ColumnMapper() {
       {/* Column mapping table */}
       <div
         className="overflow-x-auto rounded-lg"
-        style={{ background: '#f4f4f1' }}
+        style={{ background: 'var(--color-surface-low)' }}
       >
         <table className="w-full text-sm">
           <thead>
-            <tr style={{ borderBottom: '1px solid rgba(192,200,195,0.2)' }}>
+            <tr style={{ borderBottom: `1px solid rgba(var(--color-outline-variant-raw), 0.2)` }}>
               {rawData.headers.map((header, i) => (
                 <th
                   key={i}
@@ -295,9 +297,15 @@ export default function ColumnMapper() {
                     className="w-full rounded px-2 py-1 text-xs font-semibold outline-none transition-all"
                     style={{
                       fontFamily: 'var(--font-display)',
-                      background: assignments[i] ? 'rgba(188,237,215,0.3)' : '#ffffff',
-                      border: `1px solid ${assignments[i] ? '#00261b' : 'rgba(192,200,195,0.4)'}`,
-                      color: assignments[i] ? '#00261b' : '#414944',
+                      background: assignments[i]
+                        ? `rgba(var(--color-primary-fixed-raw), 0.2)`
+                        : 'var(--color-surface-lowest)',
+                      border: `1px solid ${assignments[i]
+                        ? 'var(--color-primary)'
+                        : `rgba(var(--color-outline-variant-raw), 0.4)`}`,
+                      color: assignments[i]
+                        ? 'var(--color-primary)'
+                        : 'var(--color-on-surface-variant)',
                     }}
                   >
                     {FIELD_OPTIONS.map((opt) => (
@@ -312,10 +320,17 @@ export default function ColumnMapper() {
             {previewRows.map((row, i) => (
               <tr
                 key={i}
-                style={{ borderTop: '1px solid rgba(192,200,195,0.12)', background: i % 2 === 0 ? '#f9f9f7' : '#f4f4f1' }}
+                style={{
+                  borderTop: `1px solid rgba(var(--color-outline-variant-raw), 0.12)`,
+                  background: i % 2 === 0 ? 'var(--color-surface)' : 'var(--color-surface-low)',
+                }}
               >
                 {row.map((cell, j) => (
-                  <td key={j} className="px-3 py-2 text-xs text-on-surface-variant truncate max-w-[200px]" title={cell}>
+                  <td
+                    key={j}
+                    className="px-3 py-2 text-xs text-on-surface-variant truncate max-w-[200px]"
+                    title={cell}
+                  >
                     {cell}
                   </td>
                 ))}
@@ -329,16 +344,22 @@ export default function ColumnMapper() {
         Showing {previewRows.length} of {rawData.rows.length} rows
       </div>
 
-      {/* Missing fields warning — "Specimen Tag" style */}
+      {/* Missing fields warning */}
       {missingFields.length > 0 && (
-        <div className="mt-4 flex items-center gap-2 text-xs font-semibold" style={{ color: '#3a1411', fontFamily: 'var(--font-display)' }}>
+        <div
+          className="mt-4 flex items-center gap-2 text-xs font-semibold"
+          style={{ color: 'var(--color-loss)', fontFamily: 'var(--font-display)' }}
+        >
           <AlertTriangle size={13} />
           Missing required fields:{' '}
           {missingFields.map((f) => (
             <span
               key={f}
               className="px-2 py-0.5 rounded"
-              style={{ background: 'rgba(58,20,17,0.08)', color: '#3a1411' }}
+              style={{
+                background: `rgba(var(--color-tertiary-raw), 0.08)`,
+                color: 'var(--color-loss)',
+              }}
             >
               {f}
             </span>
@@ -348,11 +369,17 @@ export default function ColumnMapper() {
 
       {/* Row errors */}
       {errors.length > 0 && (
-        <div className="mt-4 rounded-lg p-4" style={{ background: 'rgba(58,20,17,0.06)' }}>
-          <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#3a1411', fontFamily: 'var(--font-display)' }}>
+        <div
+          className="mt-4 rounded-lg p-4"
+          style={{ background: `rgba(var(--color-tertiary-raw), 0.06)` }}
+        >
+          <p
+            className="text-xs font-bold uppercase tracking-wider mb-2"
+            style={{ color: 'var(--color-loss)', fontFamily: 'var(--font-display)' }}
+          >
             {errors.length} row(s) had issues
           </p>
-          <ul className="text-xs space-y-1 max-h-40 overflow-y-auto" style={{ color: '#3a1411' }}>
+          <ul className="text-xs space-y-1 max-h-40 overflow-y-auto" style={{ color: 'var(--color-loss)' }}>
             {errors.slice(0, 10).map((err, i) => (
               <li key={i}>Row {err.row}: {err.message} ({err.field}: &quot;{err.value}&quot;)</li>
             ))}

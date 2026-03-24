@@ -33,7 +33,7 @@ export default function ImportMethodTabs() {
       {/* Tab switcher */}
       <div
         className="flex gap-1 p-1 mb-6 rounded-lg"
-        style={{ background: '#e8e8e6' }}
+        style={{ background: 'var(--color-surface-high)' }}
       >
         {TABS.map((tab) => {
           const Icon    = tab.icon;
@@ -46,8 +46,15 @@ export default function ImportMethodTabs() {
               style={{
                 fontFamily: 'var(--font-display)',
                 ...(active
-                  ? { background: '#ffffff', color: '#00261b', boxShadow: '0 2px 8px rgba(15,30,28,0.08)' }
-                  : { background: 'transparent', color: '#414944' }),
+                  ? {
+                      background: 'var(--color-surface-lowest)',
+                      color: 'var(--color-primary)',
+                      boxShadow: `0 2px 8px rgba(var(--shadow-raw), 0.08)`,
+                    }
+                  : {
+                      background: 'transparent',
+                      color: 'var(--color-on-surface-variant)',
+                    }),
               }}
             >
               <Icon size={14} />
@@ -60,7 +67,10 @@ export default function ImportMethodTabs() {
       {/* Tab content — elevated card */}
       <div
         className="rounded-lg p-6"
-        style={{ background: '#ffffff', boxShadow: '0 12px 40px rgba(15,30,28,0.06)' }}
+        style={{
+          background: 'var(--color-surface-lowest)',
+          boxShadow: `0 12px 40px rgba(var(--shadow-raw), 0.06)`,
+        }}
       >
         {activeTab === 'file'   && <FileImport />}
         {activeTab === 'sheets' && <GoogleSheetsImport />}

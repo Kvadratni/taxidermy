@@ -31,43 +31,64 @@ export default function TaxSummary() {
         <ProvinceSelector />
       </div>
 
-      {/* Hero metrics — two deep-green cards + two surface cards */}
+      {/* Hero metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {/* Gains */}
-        <div className="rounded-lg p-5" style={{ background: '#f4f4f1' }}>
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-secondary mb-2 uppercase tracking-wider" style={{ fontFamily: 'var(--font-display)' }}>
+        <div className="rounded-lg p-5" style={{ background: 'var(--color-surface-low)' }}>
+          <div
+            className="flex items-center gap-1.5 text-xs font-semibold text-secondary mb-2 uppercase tracking-wider"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
             <TrendingUp size={12} />
             Total Gains
           </div>
-          <div className="text-2xl font-extrabold" style={{ fontFamily: 'var(--font-display)', color: '#00261b' }}>
+          <div
+            className="text-2xl font-extrabold"
+            style={{ fontFamily: 'var(--font-display)', color: 'var(--color-primary)' }}
+          >
             ${totalGains.toFixed(2)}
           </div>
         </div>
 
         {/* Losses */}
-        <div className="rounded-lg p-5" style={{ background: '#f4f4f1' }}>
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-secondary mb-2 uppercase tracking-wider" style={{ fontFamily: 'var(--font-display)' }}>
+        <div className="rounded-lg p-5" style={{ background: 'var(--color-surface-low)' }}>
+          <div
+            className="flex items-center gap-1.5 text-xs font-semibold text-secondary mb-2 uppercase tracking-wider"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
             <TrendingDown size={12} />
             Total Losses
           </div>
-          <div className="text-2xl font-extrabold" style={{ fontFamily: 'var(--font-display)', color: '#3a1411' }}>
+          <div
+            className="text-2xl font-extrabold"
+            style={{ fontFamily: 'var(--font-display)', color: 'var(--color-loss)' }}
+          >
             ${totalLosses.toFixed(2)}
           </div>
         </div>
 
-        {/* Net — deep forest green hero card */}
+        {/* Net — deep forest green hero card (same in both modes) */}
         <div className="rounded-lg p-5" style={{ background: 'linear-gradient(160deg,#00261b,#0b3d2e)' }}>
-          <div className="text-xs font-semibold mb-2 uppercase tracking-wider" style={{ fontFamily: 'var(--font-display)', color: 'rgba(188,237,215,0.7)' }}>
+          <div
+            className="text-xs font-semibold mb-2 uppercase tracking-wider"
+            style={{ fontFamily: 'var(--font-display)', color: 'rgba(188,237,215,0.7)' }}
+          >
             Net Gain / Loss
           </div>
-          <div className="text-2xl font-extrabold" style={{ fontFamily: 'var(--font-display)', color: netGainLoss >= 0 ? '#bcedd7' : '#fca5a5' }}>
+          <div
+            className="text-2xl font-extrabold"
+            style={{ fontFamily: 'var(--font-display)', color: netGainLoss >= 0 ? '#bcedd7' : 'var(--color-loss-muted)' }}
+          >
             ${netGainLoss.toFixed(2)}
           </div>
         </div>
 
-        {/* Taxable — deep forest green hero card */}
+        {/* Taxable — deep forest green hero card (same in both modes) */}
         <div className="rounded-lg p-5" style={{ background: 'linear-gradient(160deg,#00261b,#0b3d2e)' }}>
-          <div className="text-xs font-semibold mb-2 uppercase tracking-wider" style={{ fontFamily: 'var(--font-display)', color: 'rgba(188,237,215,0.7)' }}>
+          <div
+            className="text-xs font-semibold mb-2 uppercase tracking-wider"
+            style={{ fontFamily: 'var(--font-display)', color: 'rgba(188,237,215,0.7)' }}
+          >
             Taxable (50%)
           </div>
           <div className="text-2xl font-extrabold text-white" style={{ fontFamily: 'var(--font-display)' }}>
@@ -78,7 +99,7 @@ export default function TaxSummary() {
 
       {/* Estimated tax breakdown */}
       {netGainLoss > 0 && (
-        <div className="rounded-lg p-5" style={{ background: '#f4f4f1' }}>
+        <div className="rounded-lg p-5" style={{ background: 'var(--color-surface-low)' }}>
           <h4
             className="text-xs font-bold uppercase tracking-wider text-secondary mb-4"
             style={{ fontFamily: 'var(--font-display)' }}
@@ -115,7 +136,7 @@ export default function TaxSummary() {
       {netGainLoss < 0 && (
         <div
           className="rounded-lg p-4 flex items-start gap-3"
-          style={{ background: '#d5e6e2', color: '#00261b' }}
+          style={{ background: 'var(--color-secondary-container)', color: 'var(--color-primary)' }}
         >
           <AlertCircle size={15} className="mt-0.5 shrink-0" />
           <p className="text-sm">
