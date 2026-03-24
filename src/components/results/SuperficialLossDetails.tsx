@@ -1,11 +1,24 @@
 'use client';
 
 import { useAppStore } from '@/store/useAppStore';
+import { useMemo } from 'react';
 import { AlertTriangle } from 'lucide-react';
 
 export default function SuperficialLossDetails() {
-  const superficialLosses = useAppStore((s) => s.superficialLosses);
-  const dispositions = useAppStore((s) => s.dispositions);
+  const allLosses = useAppStore((s) => s.superficialLosses);
+  const allDispositions = useAppStore((s) => s.dispositions);
+  const taxYear = useAppStore((s) => s.taxYear);
+
+  const superficialLosses = useMemo(() => {
+    return allLosses.filter((l) => {
+      // Find the disposition this loss belongs to, to check the year
+      const disp = allDispositions.find((d) => d.transaction.id === l.dispositionId);
+      if (!disp) return false;
+      return disp.transaction.date.getFullYear() === taxYear;
+    });
+  }, [allLosses, allDispositions, taxYear]);
+
+  const dispositions = allDispositions; // For rendering inside map
 
   if (superficialLosses.length === 0) return null;
 

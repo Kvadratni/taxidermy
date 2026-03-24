@@ -1,6 +1,7 @@
 'use client';
 
 import { useAppStore } from '@/store/useAppStore';
+import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
 
 function FxAmount({ original, currency, fxRate }: { original: number; currency: string; fxRate: number }) {
@@ -12,34 +13,58 @@ function FxAmount({ original, currency, fxRate }: { original: number; currency: 
 }
 
 export default function Schedule3Report() {
-  const dispositions = useAppStore((s) => s.dispositions);
+  const allDispositions = useAppStore((s) => s.dispositions);
+  const taxYear = useAppStore((s) => s.taxYear);
+  const [hideDenied, setHideDenied] = useState(false);
+
+  const dispositions = useMemo(() => {
+    return allDispositions.filter((d) => d.transaction.date.getFullYear() === taxYear);
+  }, [allDispositions, taxYear]);
+
+  // Derived filtered results
+  const visibleDispositions = useMemo(() => {
+    if (!hideDenied) return dispositions;
+    // Hide transactions where 100% of the loss was denied (allowed is 0)
+    return dispositions.filter(d => !(d.isSuperficialLoss && Math.abs(d.allowedGainLoss) < 0.01 && d.rawGainLoss < 0));
+  }, [dispositions, hideDenied]);
 
   if (dispositions.length === 0) {
     return (
       <div className="rounded-lg p-8 text-center text-sm text-secondary" style={{ background: 'var(--color-surface-low)' }}>
-        No dispositions to display.
+        No dispositions to display for the selected tax year.
       </div>
     );
   }
 
-  const totalProceeds  = dispositions.reduce((s, d) => s + d.proceeds, 0);
-  const totalAcb       = dispositions.reduce((s, d) => s + d.acbOfSharesSold, 0);
-  const totalOutlays   = dispositions.reduce((s, d) => s + d.outlays, 0);
-  const totalGainLoss  = dispositions.reduce((s, d) => s + d.allowedGainLoss, 0);
-  const totalDenied    = dispositions.reduce((s, d) => s + d.superficialLoss, 0);
+  const totalProceeds  = visibleDispositions.reduce((s, d) => s + d.proceeds, 0);
+  const totalAcb       = visibleDispositions.reduce((s, d) => s + d.acbOfSharesSold, 0);
+  const totalOutlays   = visibleDispositions.reduce((s, d) => s + d.outlays, 0);
+  const totalGainLoss  = visibleDispositions.reduce((s, d) => s + d.allowedGainLoss, 0);
+  const totalDenied    = visibleDispositions.reduce((s, d) => s + d.superficialLoss, 0);
 
   const foreignCurrencies = [...new Set(
-    dispositions.map((d) => d.transaction.currency).filter((c) => c !== 'CAD')
+    visibleDispositions.map((d) => d.transaction.currency).filter((c) => c !== 'CAD')
   )];
 
   return (
     <div>
-      <h3
-        className="text-2xl font-extrabold tracking-tight text-primary mb-1"
-        style={{ fontFamily: 'var(--font-display)' }}
-      >
-        Schedule 3
-      </h3>
+      <div className="flex justify-between items-end mb-1">
+        <h3
+          className="text-2xl font-extrabold tracking-tight text-primary"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          Schedule 3
+        </h3>
+        <label className="flex items-center gap-2 text-xs font-semibold text-secondary cursor-pointer hover:text-primary transition-colors">
+          <input 
+            type="checkbox" 
+            checked={hideDenied} 
+            onChange={e => setHideDenied(e.target.checked)} 
+            className="rounded border-outline-variant text-primary focus:ring-primary h-3.5 w-3.5"
+          />
+          Hide 100% Denied Superficial Losses
+        </label>
+      </div>
       <p className="text-xs text-secondary mb-5 uppercase tracking-wider" style={{ fontFamily: 'var(--font-display)' }}>
         Capital Gains (or Losses) · Publicly traded shares &amp; securities
       </p>
@@ -71,7 +96,7 @@ export default function Schedule3Report() {
             </tr>
           </thead>
           <tbody>
-            {dispositions.map((d, i) => (
+            {visibleDispositions.map((d, i) => (
               <tr
                 key={i}
                 style={{
@@ -118,8 +143,11 @@ export default function Schedule3Report() {
                 <td className="px-4 py-3 text-right">
                   <span className="font-semibold text-on-surface">${d.acbOfSharesSold.toFixed(2)}</span>
                   {d.transaction.currency !== 'CAD' && d.transaction.glOriginalAcb !== undefined && (
-                    <div className="text-xs mt-0.5 text-outline-variant">
-                      {d.transaction.currency} ${d.transaction.glOriginalAcb.toFixed(2)} (acq. rate)
+                    <div 
+                      className="text-xs mt-0.5 text-outline-variant"
+                      title="Broker's recorded original USD cost basis. Your CAD ACB above is calculated independently using historical running average and acquisition FX rates, per Canadian tax regulations."
+                    >
+                      {d.transaction.currency} ${d.transaction.glOriginalAcb.toFixed(2)} (Broker)
                     </div>
                   )}
                 </td>

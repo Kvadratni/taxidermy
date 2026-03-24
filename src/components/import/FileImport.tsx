@@ -5,7 +5,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { parseCsvFile } from '@/lib/import/csv-parser';
 import { parseXlsxFile } from '@/lib/import/xlsx-parser';
 import { detectFormat } from '@/lib/mapping/auto-detect';
-import { FileSpreadsheet, X, CheckCircle2, Plus } from 'lucide-react';
+import { FileSpreadsheet, X, CheckCircle2, Plus, Loader2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 export default function FileImport() {
@@ -14,6 +14,8 @@ export default function FileImport() {
   const removeFile = useAppStore((s) => s.removeFile);
   const setStep = useAppStore((s) => s.setStep);
   const [dragging, setDragging] = useState(false);
+  const [parsingPdf, setParsingPdf] = useState(false);
+  const [pdfProgress, setPdfProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleFile = useCallback(async (file: File) => {
@@ -26,7 +28,7 @@ export default function FileImport() {
       } else if (ext === 'xlsx' || ext === 'xls') {
         rawData = await parseXlsxFile(file);
       } else {
-        setError('Unsupported file type. Please upload a .csv or .xlsx file.');
+        setError('Unsupported file type. Please upload a .csv, .xlsx, or .pdf file.');
         return;
       }
 
@@ -39,18 +41,125 @@ export default function FileImport() {
         detectedFormat: detection?.format ?? null,
         mapping: detection?.mapping ?? null,
         transactions: [],
-        currencyOverride: 'USD',
+        currencyOverride: 'CAD',
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to parse file');
     }
   }, [addFile]);
 
-  const handleFiles = useCallback(async (files: FileList) => {
-    for (let i = 0; i < files.length; i++) {
-      await handleFile(files[i]);
+  const handleFiles = useCallback(async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    const supportedExts = ['csv', 'xlsx', 'xls', 'pdf'];
+    // Filter to only supported file types (silently ignore .DS_Store, etc.)
+    const supported = fileArray.filter(f => {
+      const ext = f.name.split('.').pop()?.toLowerCase() ?? '';
+      return supportedExts.includes(ext);
+    });
+    const pdfs = supported.filter(f => f.name.toLowerCase().endsWith('.pdf'));
+    const regulars = supported.filter(f => !f.name.toLowerCase().endsWith('.pdf'));
+
+    if (supported.length === 0 && fileArray.length > 0) {
+      setError('No supported files found. Please upload .csv, .xlsx, or .pdf files.');
+      return;
     }
-  }, [handleFile]);
+
+    // Process regulars
+    for (const file of regulars) {
+      await handleFile(file);
+    }
+
+    // Process PDFs
+    if (pdfs.length > 0) {
+      setParsingPdf(true);
+      setPdfProgress({ done: 0, total: pdfs.length });
+      try {
+        const parsedResults: { date: string; action: string; symbol: string; quantity: number; price: number; commission: number; currency: string }[] = [];
+        const failures: { name: string; reason: string; preview?: string }[] = [];
+
+        for (let i = 0; i < pdfs.length; i++) {
+          const file = pdfs[i];
+          setPdfProgress({ done: i, total: pdfs.length });
+          const formData = new FormData();
+          formData.append('file', file);
+          try {
+            const res = await fetch('/api/parse-pdf', { method: 'POST', body: formData });
+            if (!res.ok) {
+              const errBody = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+              failures.push({ name: file.name, reason: errBody.error || `HTTP ${res.status}` });
+              continue;
+            }
+            const data = await res.json();
+            if (data.transaction) {
+              const t = data.transaction;
+              // Validate we got usable data
+              if (!t.date || !t.action || t.quantity === 0) {
+                failures.push({
+                  name: file.name,
+                  reason: `Missing fields: ${!t.date ? 'date ' : ''}${!t.action ? 'action ' : ''}${t.quantity === 0 ? 'quantity' : ''}`.trim(),
+                  preview: data.textPreview,
+                });
+                continue;
+              }
+              parsedResults.push(data.transaction);
+            }
+          } catch (err) {
+            failures.push({ name: file.name, reason: err instanceof Error ? err.message : 'Unknown error' });
+          }
+        }
+        setPdfProgress({ done: pdfs.length, total: pdfs.length });
+
+        if (parsedResults.length > 0) {
+          const headers = ['Date', 'Action', 'Symbol', 'Quantity', 'Price', 'Commission', 'Currency'];
+          const rows = parsedResults.map(r => [
+            r.date,
+            r.action,
+            r.symbol,
+            r.quantity.toString(),
+            r.price.toString(),
+            r.commission.toString(),
+            r.currency
+          ]);
+
+          addFile({
+            id: uuidv4(),
+            name: `Trade Confirmations Batch (${parsedResults.length} extracted)`,
+            rawData: { headers, rows, source: 'pdf' },
+            detectedFormat: 'PDF Trade Combos',
+            mapping: {
+              date: 0,
+              action: 1,
+              symbol: 2,
+              quantity: 3,
+              price: 4,
+              commission: 5,
+              currency: 6
+            },
+            transactions: [],
+            currencyOverride: 'USD',
+          });
+        }
+
+        if (failures.length > 0) {
+          const top = failures.slice(0, 3).map(f => {
+            let line = `• ${f.name}: ${f.reason}`;
+            if (f.preview) line += `\n  Text: "${f.preview.substring(0, 200)}…"`;
+            return line;
+          }).join('\n');
+          const more = failures.length > 3 ? `\n…and ${failures.length - 3} more` : '';
+          setError(`${parsedResults.length}/${pdfs.length} PDFs extracted successfully.\n${failures.length} failed:\n${top}${more}`);
+        }
+
+        if (parsedResults.length === 0 && failures.length > 0) {
+          setError(`Could not extract any trades. All ${pdfs.length} PDFs failed.\n${failures.slice(0, 5).map(f => `• ${f.name}: ${f.reason}`).join('\n')}`);
+        }
+      } catch (err) {
+        setError('Failed processing PDF batch.');
+      }
+      setParsingPdf(false);
+      setPdfProgress(null);
+    }
+  }, [handleFile, addFile]);
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -98,15 +207,31 @@ export default function FileImport() {
           style={{ color: dragging ? 'var(--color-primary)' : 'var(--color-outline-variant)' }}
         />
         <p className="text-sm font-medium text-on-surface">
-          Drag and drop files here, or{' '}
+          Drag and drop files/folders here, or{' '}
           <label
-            className="cursor-pointer font-semibold underline underline-offset-2"
+            className="cursor-pointer font-semibold underline underline-offset-2 mx-1"
             style={{ color: 'var(--color-primary)' }}
           >
-            browse
+            browse files
             <input
               type="file"
-              accept=".csv,.xlsx,.xls"
+              accept=".csv,.xlsx,.xls,.pdf"
+              multiple
+              onChange={onFileChange}
+              className="hidden"
+            />
+          </label>
+          or{' '}
+          <label
+            className="cursor-pointer font-semibold underline underline-offset-2 mx-1"
+            style={{ color: 'var(--color-primary)' }}
+          >
+            browse folder
+            <input
+              type="file"
+              /* @ts-expect-error webkitdirectory is non-standard but widely supported */
+              webkitdirectory=""
+              directory=""
               multiple
               onChange={onFileChange}
               className="hidden"
@@ -114,9 +239,19 @@ export default function FileImport() {
           </label>
         </p>
         <p className="mt-2 text-xs text-secondary">
-          Supports CSV, XLSX — G&amp;L reports, benefit history, brokerage exports
+          Supports CSV, XLSX, and batches of individual Trade Confirmation PDFs
         </p>
       </div>
+
+      {/* Loading overlay for PDFs */}
+      {parsingPdf && (
+        <div className="mt-5 rounded-lg p-5 flex items-center justify-center gap-3" style={{ background: 'var(--color-primary-container)', color: 'var(--color-on-primary-container)' }}>
+          <Loader2 className="animate-spin" size={20} />
+          <span className="text-sm font-semibold tracking-wide" style={{ fontFamily: 'var(--font-display)' }}>
+            Extracting transactions from PDFs...{pdfProgress ? ` ${pdfProgress.done}/${pdfProgress.total}` : ''}
+          </span>
+        </div>
+      )}
 
       {/* File list */}
       {importedFiles.length > 0 && (
@@ -197,6 +332,7 @@ export default function FileImport() {
           style={{
             background: `rgba(var(--color-tertiary-raw), 0.06)`,
             color: 'var(--color-loss)',
+            whiteSpace: 'pre-wrap',
           }}
         >
           {error}

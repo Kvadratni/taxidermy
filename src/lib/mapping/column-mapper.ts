@@ -15,7 +15,12 @@ function parseDate(value: string): Date | null {
     'M/d/yyyy',
     'yyyy/MM/dd',
     'MMM dd, yyyy',
+    'MMMM dd, yyyy',
+    'MMM dd yyyy',
+    'MMMM dd yyyy',
     'dd-MMM-yyyy',
+    'dd MMM yyyy',
+    'MM-dd-yyyy',
   ];
 
   for (const fmt of formats) {

@@ -8,11 +8,18 @@ import ProvinceSelector from './ProvinceSelector';
 import { TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
 
 export default function TaxSummary() {
-  const dispositions = useAppStore((s) => s.dispositions);
+  const allDispositions = useAppStore((s) => s.dispositions);
+  const taxYear      = useAppStore((s) => s.taxYear);
   const province     = useAppStore((s) => s.province);
+
+  const dispositions = useMemo(() => {
+    return allDispositions.filter((d) => d.transaction.date.getFullYear() === taxYear);
+  }, [allDispositions, taxYear]);
 
   const totalGains  = dispositions.filter((d) => d.allowedGainLoss > 0).reduce((s, d) => s + d.allowedGainLoss, 0);
   const totalLosses = dispositions.filter((d) => d.allowedGainLoss < 0).reduce((s, d) => s + d.allowedGainLoss, 0);
+  const rawLosses   = dispositions.filter((d) => d.rawGainLoss < 0).reduce((s, d) => s + Math.abs(d.rawGainLoss), 0);
+  const deniedLosses = dispositions.reduce((s, d) => s + d.superficialLoss, 0);
   const netGainLoss = totalGains + totalLosses;
 
   const taxEstimate = useMemo(() => estimateTax(Math.max(0, netGainLoss), province), [netGainLoss, province]);
@@ -51,20 +58,32 @@ export default function TaxSummary() {
         </div>
 
         {/* Losses */}
-        <div className="rounded-lg p-5" style={{ background: 'var(--color-surface-low)' }}>
-          <div
-            className="flex items-center gap-1.5 text-xs font-semibold text-secondary mb-2 uppercase tracking-wider"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            <TrendingDown size={12} />
-            Total Losses
+        <div className="rounded-lg p-5 flex flex-col justify-between" style={{ background: 'var(--color-surface-low)' }}>
+          <div>
+            <div
+              className="flex items-center gap-1.5 text-xs font-semibold text-secondary mb-2 uppercase tracking-wider"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              <TrendingDown size={12} />
+              Claimable Losses
+            </div>
+            <div
+              className={`text-2xl font-extrabold ${Math.abs(totalLosses) < 0.01 ? 'text-secondary' : ''}`}
+              style={{ fontFamily: 'var(--font-display)', color: Math.abs(totalLosses) < 0.01 ? undefined : 'var(--color-loss)' }}
+            >
+              ${totalLosses.toFixed(2)}
+            </div>
           </div>
-          <div
-            className="text-2xl font-extrabold"
-            style={{ fontFamily: 'var(--font-display)', color: 'var(--color-loss)' }}
-          >
-            ${totalLosses.toFixed(2)}
-          </div>
+          
+          {deniedLosses > 0 && (
+            <div 
+              className="mt-3 pt-2 text-[10px] font-semibold tracking-wide flex justify-between"
+              style={{ borderTop: `1px solid rgba(var(--color-outline-variant-raw), 0.2)`, fontFamily: 'var(--font-display)' }}
+            >
+              <span className="text-secondary uppercase">Gross: ${rawLosses.toFixed(2)}</span>
+              <span className="uppercase" style={{ color: 'var(--color-loss)' }}>Denied: ${deniedLosses.toFixed(2)}</span>
+            </div>
+          )}
         </div>
 
         {/* Net — deep forest green hero card (same in both modes) */}

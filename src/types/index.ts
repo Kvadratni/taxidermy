@@ -3,7 +3,7 @@ export type TransactionAction = 'BUY' | 'SELL' | 'SPLIT' | 'ROC';
 export interface RawImportData {
   headers: string[];
   rows: string[][];
-  source: 'csv' | 'xlsx' | 'google-sheets' | 'paste';
+  source: 'csv' | 'xlsx' | 'google-sheets' | 'paste' | 'pdf';
 }
 
 export interface ColumnMapping {

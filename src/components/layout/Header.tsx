@@ -19,7 +19,9 @@ export default function Header() {
       }}
     >
       <div className="mx-auto max-w-6xl flex items-center justify-between px-6 py-4">
-        <div>
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="Taxidermy logo" className="h-10 w-10" />
+          <div>
           <h1
             className="text-xl font-extrabold tracking-tight leading-none text-primary"
             style={{ fontFamily: 'var(--font-display)' }}
@@ -32,6 +34,7 @@ export default function Header() {
           >
             Canadian Capital Gains Calculator
           </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-1">

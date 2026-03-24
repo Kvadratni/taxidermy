@@ -44,6 +44,7 @@ export function checkSuperficialLoss(
       P += txn.quantity;
     }
   }
+  P = Math.round(P * 1000000) / 1000000;
 
   if (P === 0) return null; // No repurchase in window, loss is allowed
 
@@ -99,5 +100,5 @@ function computeSharesHeldAt(
         break;
     }
   }
-  return Math.max(0, shares);
+  return Math.max(0, Math.round(shares * 1000000) / 1000000);
 }

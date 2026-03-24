@@ -1,6 +1,7 @@
 'use client';
 
 import { useAppStore } from '@/store/useAppStore';
+import { useMemo } from 'react';
 import { downloadCsv } from '@/lib/export/csv-export';
 import { downloadPdf } from '@/lib/export/pdf-generator';
 import { estimateTax } from '@/lib/engine/tax-estimator';
@@ -9,8 +10,13 @@ import { FileText, FileSpreadsheet, Printer } from 'lucide-react';
 const ghostBtn = 'flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-on-surface-variant hover:text-primary transition-colors rounded';
 
 export default function ExportButtons() {
-  const dispositions = useAppStore((s) => s.dispositions);
+  const allDispositions = useAppStore((s) => s.dispositions);
+  const taxYear      = useAppStore((s) => s.taxYear);
   const province     = useAppStore((s) => s.province);
+
+  const dispositions = useMemo(() => {
+    return allDispositions.filter((d) => d.transaction.date.getFullYear() === taxYear);
+  }, [allDispositions, taxYear]);
 
   const net = dispositions.reduce((s, d) => s + d.allowedGainLoss, 0);
 

@@ -5,6 +5,7 @@ import Schedule3Report from './Schedule3Report';
 import TaxSummary from './TaxSummary';
 import SuperficialLossDetails from './SuperficialLossDetails';
 import ExportButtons from './ExportButtons';
+import HoldingsChart from './HoldingsChart';
 
 export default function ResultsView() {
   const dispositions   = useAppStore((s) => s.dispositions);
@@ -58,6 +59,23 @@ export default function ResultsView() {
         }}
       >
         <TaxSummary />
+      </section>
+
+      {/* Holdings Chart */}
+      <section
+        className="rounded-lg p-7"
+        style={{
+          background: 'var(--color-surface-lowest)',
+          boxShadow: `0 12px 40px rgba(var(--shadow-raw), 0.06)`,
+        }}
+      >
+        <h3
+          className="text-2xl font-extrabold tracking-tight text-primary mb-2"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          Securities Holdings
+        </h3>
+        <HoldingsChart transactions={transactions} />
       </section>
 
       {/* Schedule 3 */}
