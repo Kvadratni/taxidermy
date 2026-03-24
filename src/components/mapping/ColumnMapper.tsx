@@ -42,6 +42,7 @@ export default function ColumnMapper() {
   const [assignments, setAssignments] = useState<Record<number, string>>({});
   const [detectedName, setDetectedName] = useState<string | null>(null);
   const [isGlMode, setIsGlMode] = useState(false);
+  const [glCurrency, setGlCurrency] = useState('USD');
   const [errors, setErrors] = useState<MappingError[]>([]);
   const [processing, setProcessing] = useState(false);
   const [fxStatus, setFxStatus] = useState<string | null>(null);
@@ -109,6 +110,7 @@ export default function ColumnMapper() {
         date: reverse.dateSold,
         quantity: reverse.quantity,
         glMode: true,
+        glCurrency,
         dateSold: reverse.dateSold,
         dateAcquired: reverse.dateAcquired,
         totalProceeds: reverse.totalProceeds,
@@ -127,7 +129,7 @@ export default function ColumnMapper() {
       totalAmount: reverse.totalAmount,
       settlementDate: reverse.settlementDate,
     };
-  }, [assignments, isGlMode]);
+  }, [assignments, isGlMode, glCurrency]);
 
   const mapping = buildMapping();
   const activeRequiredFields = isGlMode ? REQUIRED_FIELDS_GL : REQUIRED_FIELDS;
@@ -223,6 +225,26 @@ export default function ColumnMapper() {
           ? 'G&L report detected. Required: Date Sold, Total Proceeds, Adjusted Cost Basis, Quantity. Each row will be imported as a matched Buy + Sell lot.'
           : 'Assign each column to a field. Required: Date, Action, Symbol, Quantity, Price.'}
       </p>
+      {isGlMode && (
+        <div className="mb-4 flex items-center gap-3">
+          <label className="text-sm font-medium text-zinc-700">Currency of report values:</label>
+          <select
+            value={glCurrency}
+            onChange={(e) => setGlCurrency(e.target.value)}
+            className="rounded border border-zinc-300 px-2 py-1 text-sm"
+          >
+            <option value="USD">USD — US Dollar</option>
+            <option value="CAD">CAD — Canadian Dollar</option>
+            <option value="GBP">GBP — British Pound</option>
+            <option value="EUR">EUR — Euro</option>
+            <option value="AUD">AUD — Australian Dollar</option>
+            <option value="CHF">CHF — Swiss Franc</option>
+          </select>
+          {glCurrency !== 'CAD' && (
+            <span className="text-xs text-blue-600">Exchange rates will be fetched automatically.</span>
+          )}
+        </div>
+      )}
 
       <div className="overflow-x-auto rounded-lg border border-zinc-200">
         <table className="w-full text-sm">

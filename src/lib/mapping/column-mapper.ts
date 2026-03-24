@@ -86,6 +86,7 @@ function mapGlToTransactions(
     const acbTotal = Math.abs(parseNumber(row[mapping.acbTotal!] ?? '0'));
     const proceedsPerShare = totalProceeds / quantity;
     const acbPerShare = acbTotal / quantity;
+    const currency = (mapping.glCurrency ?? 'CAD').toUpperCase();
 
     // Synthesize a BUY at the acquisition date so the engine builds ACB correctly
     transactions.push({
@@ -96,9 +97,9 @@ function mapGlToTransactions(
       symbol: 'EQUITY',
       quantity,
       pricePerShare: acbPerShare,
-      pricePerShareCAD: acbPerShare,
+      pricePerShareCAD: acbPerShare, // updated by FX conversion if non-CAD
       commission: 0,
-      currency: 'CAD',
+      currency,
       fxRate: 1,
       totalCAD: acbTotal,
     });
@@ -112,9 +113,9 @@ function mapGlToTransactions(
       symbol: 'EQUITY',
       quantity,
       pricePerShare: proceedsPerShare,
-      pricePerShareCAD: proceedsPerShare,
+      pricePerShareCAD: proceedsPerShare, // updated by FX conversion if non-CAD
       commission: 0,
-      currency: 'CAD',
+      currency,
       fxRate: 1,
       totalCAD: totalProceeds,
     });

@@ -18,6 +18,7 @@ export interface ColumnMapping {
   settlementDate?: number;
   // G&L (Gains & Losses) report mode — pre-matched lots with no action/symbol columns
   glMode?: boolean;
+  glCurrency?: string;
   dateSold?: number;
   dateAcquired?: number;
   totalProceeds?: number;
