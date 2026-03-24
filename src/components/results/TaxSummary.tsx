@@ -9,115 +9,125 @@ import { TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
 
 export default function TaxSummary() {
   const dispositions = useAppStore((s) => s.dispositions);
-  const province = useAppStore((s) => s.province);
+  const province     = useAppStore((s) => s.province);
 
-  const totalGains = dispositions
-    .filter((d) => d.allowedGainLoss > 0)
-    .reduce((s, d) => s + d.allowedGainLoss, 0);
-
-  const totalLosses = dispositions
-    .filter((d) => d.allowedGainLoss < 0)
-    .reduce((s, d) => s + d.allowedGainLoss, 0);
-
+  const totalGains  = dispositions.filter((d) => d.allowedGainLoss > 0).reduce((s, d) => s + d.allowedGainLoss, 0);
+  const totalLosses = dispositions.filter((d) => d.allowedGainLoss < 0).reduce((s, d) => s + d.allowedGainLoss, 0);
   const netGainLoss = totalGains + totalLosses;
 
-  const taxEstimate = useMemo(
-    () => estimateTax(Math.max(0, netGainLoss), province),
-    [netGainLoss, province]
-  );
-
+  const taxEstimate = useMemo(() => estimateTax(Math.max(0, netGainLoss), province), [netGainLoss, province]);
   const provinceName = PROVINCES.find((p) => p.code === province)?.name ?? province;
 
   return (
     <div>
-      <div className="flex items-start justify-between mb-6">
-        <h3 className="text-base font-semibold text-zinc-900">Tax Summary</h3>
+      {/* Header */}
+      <div className="flex items-start justify-between mb-8">
+        <h3
+          className="text-2xl font-extrabold tracking-tight text-primary"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          Tax Summary
+        </h3>
         <ProvinceSelector />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="rounded-lg border border-zinc-200 p-4">
-          <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 mb-1">
-            <TrendingUp size={14} className="text-emerald-500" />
+      {/* Hero metrics — two deep-green cards + two surface cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        {/* Gains */}
+        <div className="rounded-lg p-5" style={{ background: '#f4f4f1' }}>
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-secondary mb-2 uppercase tracking-wider" style={{ fontFamily: 'var(--font-display)' }}>
+            <TrendingUp size={12} />
             Total Gains
           </div>
-          <div className="text-lg font-semibold text-emerald-600">
+          <div className="text-2xl font-extrabold" style={{ fontFamily: 'var(--font-display)', color: '#00261b' }}>
             ${totalGains.toFixed(2)}
           </div>
         </div>
-        <div className="rounded-lg border border-zinc-200 p-4">
-          <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 mb-1">
-            <TrendingDown size={14} className="text-red-500" />
+
+        {/* Losses */}
+        <div className="rounded-lg p-5" style={{ background: '#f4f4f1' }}>
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-secondary mb-2 uppercase tracking-wider" style={{ fontFamily: 'var(--font-display)' }}>
+            <TrendingDown size={12} />
             Total Losses
           </div>
-          <div className="text-lg font-semibold text-red-600">
+          <div className="text-2xl font-extrabold" style={{ fontFamily: 'var(--font-display)', color: '#3a1411' }}>
             ${totalLosses.toFixed(2)}
           </div>
         </div>
-        <div className="rounded-lg border border-zinc-200 p-4">
-          <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 mb-1">
-            Net Gain/Loss
+
+        {/* Net — deep forest green hero card */}
+        <div className="rounded-lg p-5" style={{ background: 'linear-gradient(160deg,#00261b,#0b3d2e)' }}>
+          <div className="text-xs font-semibold mb-2 uppercase tracking-wider" style={{ fontFamily: 'var(--font-display)', color: 'rgba(188,237,215,0.7)' }}>
+            Net Gain / Loss
           </div>
-          <div
-            className={`text-lg font-semibold ${
-              netGainLoss >= 0 ? 'text-emerald-600' : 'text-red-600'
-            }`}
-          >
+          <div className="text-2xl font-extrabold" style={{ fontFamily: 'var(--font-display)', color: netGainLoss >= 0 ? '#bcedd7' : '#fca5a5' }}>
             ${netGainLoss.toFixed(2)}
           </div>
         </div>
-        <div className="rounded-lg border border-zinc-200 p-4">
-          <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 mb-1">
+
+        {/* Taxable — deep forest green hero card */}
+        <div className="rounded-lg p-5" style={{ background: 'linear-gradient(160deg,#00261b,#0b3d2e)' }}>
+          <div className="text-xs font-semibold mb-2 uppercase tracking-wider" style={{ fontFamily: 'var(--font-display)', color: 'rgba(188,237,215,0.7)' }}>
             Taxable (50%)
           </div>
-          <div className="text-lg font-semibold text-zinc-900">
+          <div className="text-2xl font-extrabold text-white" style={{ fontFamily: 'var(--font-display)' }}>
             ${taxEstimate.taxableCapitalGains.toFixed(2)}
           </div>
         </div>
       </div>
 
+      {/* Estimated tax breakdown */}
       {netGainLoss > 0 && (
-        <div className="rounded-lg border border-zinc-200 p-4 mb-4">
-          <h4 className="text-sm font-semibold text-zinc-900 mb-3">
-            Estimated Tax ({provinceName})
+        <div className="rounded-lg p-5" style={{ background: '#f4f4f1' }}>
+          <h4
+            className="text-xs font-bold uppercase tracking-wider text-secondary mb-4"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            Estimated Tax — {provinceName}
           </h4>
-          <div className="grid grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-3 gap-6">
             <div>
-              <div className="text-xs text-zinc-500">Federal Tax</div>
-              <div className="font-medium">${taxEstimate.federalTax.toFixed(2)}</div>
+              <div className="text-xs text-secondary mb-1">Federal</div>
+              <div className="text-lg font-bold text-on-surface" style={{ fontFamily: 'var(--font-display)' }}>
+                ${taxEstimate.federalTax.toFixed(2)}
+              </div>
             </div>
             <div>
-              <div className="text-xs text-zinc-500">Provincial Tax</div>
-              <div className="font-medium">${taxEstimate.provincialTax.toFixed(2)}</div>
+              <div className="text-xs text-secondary mb-1">Provincial</div>
+              <div className="text-lg font-bold text-on-surface" style={{ fontFamily: 'var(--font-display)' }}>
+                ${taxEstimate.provincialTax.toFixed(2)}
+              </div>
             </div>
             <div>
-              <div className="text-xs text-zinc-500">Combined Tax</div>
-              <div className="font-semibold text-zinc-900">
+              <div className="text-xs text-secondary mb-1">Combined</div>
+              <div className="text-lg font-extrabold text-primary" style={{ fontFamily: 'var(--font-display)' }}>
                 ${taxEstimate.combinedTax.toFixed(2)}
               </div>
             </div>
           </div>
-          <div className="mt-3 text-xs text-zinc-500">
-            Effective tax rate on total gains: {(taxEstimate.effectiveRate * 100).toFixed(1)}%
+          <div className="mt-4 text-xs text-secondary">
+            Effective rate on total gains: {(taxEstimate.effectiveRate * 100).toFixed(1)}%
           </div>
         </div>
       )}
 
+      {/* Net loss notice */}
       {netGainLoss < 0 && (
-        <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 flex items-start gap-2">
-          <AlertCircle size={16} className="text-blue-500 mt-0.5 shrink-0" />
-          <div className="text-sm text-blue-700">
-            You have a net capital loss of ${Math.abs(netGainLoss).toFixed(2)}.
-            This can be carried back up to 3 years or carried forward indefinitely
-            to offset future capital gains.
-          </div>
+        <div
+          className="rounded-lg p-4 flex items-start gap-3"
+          style={{ background: '#d5e6e2', color: '#00261b' }}
+        >
+          <AlertCircle size={15} className="mt-0.5 shrink-0" />
+          <p className="text-sm">
+            Net capital loss of <strong>${Math.abs(netGainLoss).toFixed(2)}</strong>.
+            Carry back up to 3 years or forward indefinitely to offset future capital gains.
+          </p>
         </div>
       )}
 
-      <div className="mt-4 text-xs text-zinc-400">
-        Note: This is an estimate only. Actual tax depends on your total income and deductions.
-        Consult a tax professional for advice.
-      </div>
+      <p className="mt-5 text-xs text-on-surface-variant opacity-60">
+        Estimate only. Actual tax depends on total income and deductions. Consult a tax professional.
+      </p>
     </div>
   );
 }

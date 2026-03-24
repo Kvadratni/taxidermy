@@ -213,25 +213,48 @@ export default function ColumnMapper() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h2 className="text-lg font-semibold text-zinc-900 mb-1">Map Your Columns</h2>
+      {/* Header */}
+      <h2
+        className="text-3xl font-extrabold tracking-tight text-primary mb-1"
+        style={{ fontFamily: 'var(--font-display)' }}
+      >
+        Map Your Columns
+      </h2>
+
+      {/* Format detection banner */}
       {detectedName && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm text-emerald-700">
-          <CheckCircle2 size={16} />
+        <div
+          className="mb-4 flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium"
+          style={{ background: '#d5e6e2', color: '#00261b', fontFamily: 'var(--font-display)' }}
+        >
+          <CheckCircle2 size={14} />
           Detected format: <strong>{detectedName}</strong>. Column mapping auto-populated.
         </div>
       )}
-      <p className="text-sm text-zinc-500 mb-4">
+
+      <p className="text-sm text-secondary mb-5">
         {isGlMode
-          ? 'G&L report detected. Required: Date Sold, Total Proceeds, Adjusted Cost Basis, Quantity. Each row will be imported as a matched Buy + Sell lot.'
+          ? 'G&L report mode — each row imports as a matched Buy + Sell lot. Required: Date Sold, Total Proceeds, Adjusted Cost Basis, Quantity.'
           : 'Assign each column to a field. Required: Date, Action, Symbol, Quantity, Price.'}
       </p>
+
+      {/* G&L currency picker */}
       {isGlMode && (
-        <div className="mb-4 flex items-center gap-3">
-          <label className="text-sm font-medium text-zinc-700">Currency of report values:</label>
+        <div
+          className="mb-5 flex items-center gap-3 rounded-lg px-4 py-3"
+          style={{ background: '#f4f4f1' }}
+        >
+          <label
+            className="text-xs font-bold uppercase tracking-wider text-secondary"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            Report currency
+          </label>
           <select
             value={glCurrency}
             onChange={(e) => setGlCurrency(e.target.value)}
-            className="rounded border border-zinc-300 px-2 py-1 text-sm"
+            className="rounded px-2 py-1 text-xs font-semibold text-on-surface outline-none"
+            style={{ background: '#ffffff', border: '1px solid rgba(192,200,195,0.4)', fontFamily: 'var(--font-display)' }}
           >
             <option value="USD">USD — US Dollar</option>
             <option value="CAD">CAD — Canadian Dollar</option>
@@ -241,31 +264,44 @@ export default function ColumnMapper() {
             <option value="CHF">CHF — Swiss Franc</option>
           </select>
           {glCurrency !== 'CAD' && (
-            <span className="text-xs text-blue-600">Exchange rates will be fetched automatically.</span>
+            <span className="text-xs text-secondary">Exchange rates fetched automatically from Bank of Canada.</span>
           )}
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-zinc-200">
+      {/* Column mapping table */}
+      <div
+        className="overflow-x-auto rounded-lg"
+        style={{ background: '#f4f4f1' }}
+      >
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-zinc-50">
+            <tr style={{ borderBottom: '1px solid rgba(192,200,195,0.2)' }}>
               {rawData.headers.map((header, i) => (
-                <th key={i} className="px-3 py-2 text-left font-medium text-zinc-600 min-w-[140px]">
-                  <div className="mb-1 truncate" title={header}>{header}</div>
+                <th
+                  key={i}
+                  className="px-3 py-3 text-left min-w-[140px]"
+                >
+                  <div
+                    className="mb-1.5 truncate text-xs font-bold uppercase tracking-wider text-secondary"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                    title={header}
+                  >
+                    {header}
+                  </div>
                   <select
                     value={assignments[i] ?? ''}
-                    onChange={(e) =>
-                      setAssignments((prev) => ({ ...prev, [i]: e.target.value }))
-                    }
-                    className={`w-full rounded border px-2 py-1 text-xs ${
-                      assignments[i] ? 'border-blue-300 bg-blue-50' : 'border-zinc-300'
-                    }`}
+                    onChange={(e) => setAssignments((prev) => ({ ...prev, [i]: e.target.value }))}
+                    className="w-full rounded px-2 py-1 text-xs font-semibold outline-none transition-all"
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      background: assignments[i] ? 'rgba(188,237,215,0.3)' : '#ffffff',
+                      border: `1px solid ${assignments[i] ? '#00261b' : 'rgba(192,200,195,0.4)'}`,
+                      color: assignments[i] ? '#00261b' : '#414944',
+                    }}
                   >
                     {FIELD_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
                 </th>
@@ -274,9 +310,12 @@ export default function ColumnMapper() {
           </thead>
           <tbody>
             {previewRows.map((row, i) => (
-              <tr key={i} className="border-t border-zinc-100">
+              <tr
+                key={i}
+                style={{ borderTop: '1px solid rgba(192,200,195,0.12)', background: i % 2 === 0 ? '#f9f9f7' : '#f4f4f1' }}
+              >
                 {row.map((cell, j) => (
-                  <td key={j} className="px-3 py-1.5 text-zinc-600 truncate max-w-[200px]" title={cell}>
+                  <td key={j} className="px-3 py-2 text-xs text-on-surface-variant truncate max-w-[200px]" title={cell}>
                     {cell}
                   </td>
                 ))}
@@ -286,53 +325,66 @@ export default function ColumnMapper() {
         </table>
       </div>
 
-      <div className="mt-2 text-xs text-zinc-400">
+      <div className="mt-2 text-xs text-secondary">
         Showing {previewRows.length} of {rawData.rows.length} rows
       </div>
 
+      {/* Missing fields warning — "Specimen Tag" style */}
       {missingFields.length > 0 && (
-        <div className="mt-4 flex items-center gap-2 text-sm text-amber-600">
-          <AlertTriangle size={16} />
-          Missing required fields: {missingFields.join(', ')}
+        <div className="mt-4 flex items-center gap-2 text-xs font-semibold" style={{ color: '#3a1411', fontFamily: 'var(--font-display)' }}>
+          <AlertTriangle size={13} />
+          Missing required fields:{' '}
+          {missingFields.map((f) => (
+            <span
+              key={f}
+              className="px-2 py-0.5 rounded"
+              style={{ background: 'rgba(58,20,17,0.08)', color: '#3a1411' }}
+            >
+              {f}
+            </span>
+          ))}
         </div>
       )}
 
+      {/* Row errors */}
       {errors.length > 0 && (
-        <div className="mt-4 rounded-lg bg-red-50 border border-red-200 p-3">
-          <p className="text-sm font-medium text-red-700 mb-2">
-            {errors.length} row(s) had issues:
+        <div className="mt-4 rounded-lg p-4" style={{ background: 'rgba(58,20,17,0.06)' }}>
+          <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#3a1411', fontFamily: 'var(--font-display)' }}>
+            {errors.length} row(s) had issues
           </p>
-          <ul className="text-xs text-red-600 space-y-1 max-h-40 overflow-y-auto">
+          <ul className="text-xs space-y-1 max-h-40 overflow-y-auto" style={{ color: '#3a1411' }}>
             {errors.slice(0, 10).map((err, i) => (
-              <li key={i}>
-                Row {err.row}: {err.message} ({err.field}: &quot;{err.value}&quot;)
-              </li>
+              <li key={i}>Row {err.row}: {err.message} ({err.field}: &quot;{err.value}&quot;)</li>
             ))}
-            {errors.length > 10 && <li>...and {errors.length - 10} more</li>}
+            {errors.length > 10 && <li>…and {errors.length - 10} more</li>}
           </ul>
         </div>
       )}
 
+      {/* FX fetch status */}
       {fxStatus && (
-        <div className="mt-4 flex items-center gap-2 text-sm text-blue-600">
-          <Loader2 size={14} className="animate-spin" />
+        <div className="mt-4 flex items-center gap-2 text-xs text-secondary">
+          <Loader2 size={12} className="animate-spin" />
           {fxStatus}
         </div>
       )}
 
-      <div className="mt-6 flex gap-3">
+      {/* Actions */}
+      <div className="mt-7 flex gap-3">
         <button
           onClick={() => setStep('import')}
-          className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+          className="px-4 py-2 text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors rounded"
+          style={{ fontFamily: 'var(--font-display)' }}
         >
-          Back
+          ← Back
         </button>
         <button
           onClick={handleProcess}
           disabled={!mapping || processing}
-          className="rounded-lg bg-zinc-900 px-6 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 transition-colors flex items-center gap-2"
+          className="btn-primary px-6 py-2 text-xs font-bold text-white rounded disabled:opacity-40 transition-all flex items-center gap-2"
+          style={{ fontFamily: 'var(--font-display)' }}
         >
-          {processing && <Loader2 size={14} className="animate-spin" />}
+          {processing && <Loader2 size={12} className="animate-spin" />}
           Calculate Gains
         </button>
       </div>

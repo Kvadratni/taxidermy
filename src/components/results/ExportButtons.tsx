@@ -6,55 +6,26 @@ import { downloadPdf } from '@/lib/export/pdf-generator';
 import { estimateTax } from '@/lib/engine/tax-estimator';
 import { FileText, FileSpreadsheet, Printer } from 'lucide-react';
 
+const ghostBtn = 'flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-on-surface-variant hover:text-primary transition-colors rounded';
+
 export default function ExportButtons() {
   const dispositions = useAppStore((s) => s.dispositions);
-  const province = useAppStore((s) => s.province);
+  const province     = useAppStore((s) => s.province);
 
-  const totalGains = dispositions
-    .filter((d) => d.allowedGainLoss > 0)
-    .reduce((s, d) => s + d.allowedGainLoss, 0);
-  const totalLosses = dispositions
-    .filter((d) => d.allowedGainLoss < 0)
-    .reduce((s, d) => s + d.allowedGainLoss, 0);
-  const netGainLoss = totalGains + totalLosses;
-
-  const handlePdf = () => {
-    const taxEstimate = estimateTax(Math.max(0, netGainLoss), province);
-    downloadPdf(dispositions, taxEstimate);
-  };
-
-  const handleCsv = () => {
-    downloadCsv(dispositions);
-  };
-
-  const handlePrint = () => {
-    window.print();
-  };
+  const net = dispositions.reduce((s, d) => s + d.allowedGainLoss, 0);
 
   if (dispositions.length === 0) return null;
 
   return (
-    <div className="flex gap-2">
-      <button
-        onClick={handlePdf}
-        className="flex items-center gap-2 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-50 transition-colors"
-      >
-        <FileText size={14} />
-        Export PDF
+    <div className="flex items-center gap-1">
+      <button onClick={() => downloadPdf(dispositions, estimateTax(Math.max(0, net), province))} className={ghostBtn}>
+        <FileText size={12} /> PDF
       </button>
-      <button
-        onClick={handleCsv}
-        className="flex items-center gap-2 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-50 transition-colors"
-      >
-        <FileSpreadsheet size={14} />
-        Export CSV
+      <button onClick={() => downloadCsv(dispositions)} className={ghostBtn}>
+        <FileSpreadsheet size={12} /> CSV
       </button>
-      <button
-        onClick={handlePrint}
-        className="flex items-center gap-2 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-50 transition-colors"
-      >
-        <Printer size={14} />
-        Print
+      <button onClick={() => window.print()} className={ghostBtn}>
+        <Printer size={12} /> Print
       </button>
     </div>
   );
