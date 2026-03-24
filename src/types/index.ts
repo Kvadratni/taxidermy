@@ -23,6 +23,20 @@ export interface ColumnMapping {
   dateAcquired?: number;
   totalProceeds?: number;
   acbTotal?: number;
+  // Benefit History mode — vest/purchase events parsed via special parser
+  benefitHistoryMode?: boolean;
+}
+
+export interface ImportedFile {
+  id: string;
+  name: string;
+  rawData: RawImportData;
+  detectedFormat: string | null;
+  mapping: ColumnMapping | null;
+  /** Mapped transactions produced from this file */
+  transactions: Transaction[];
+  /** Currency override for files without a currency column */
+  currencyOverride: string;
 }
 
 export interface Transaction {
@@ -42,6 +56,8 @@ export interface Transaction {
   rocPerShare?: number;
   // Set on G&L-mode SELL transactions to preserve the original pre-FX ACB for display
   glOriginalAcb?: number;
+  /** Source file ID for tracing back */
+  sourceFileId?: string;
 }
 
 export interface AcbRecord {
@@ -70,6 +86,13 @@ export interface SuperficialLossDetail {
   sharesHeldAfter: number;
   totalLoss: number;
   deniedLoss: number;
+}
+
+export interface ValidationIssue {
+  type: 'error' | 'warning';
+  symbol: string;
+  date?: Date;
+  message: string;
 }
 
 export interface TaxBracket {
@@ -108,17 +131,15 @@ export interface AppState {
   currentStep: WizardStep;
   setStep: (step: WizardStep) => void;
 
-  // Import
-  rawData: RawImportData | null;
-  setRawData: (data: RawImportData) => void;
+  // Multi-file import
+  importedFiles: ImportedFile[];
+  addFile: (file: ImportedFile) => void;
+  removeFile: (fileId: string) => void;
+  updateFileMapping: (fileId: string, mapping: ColumnMapping) => void;
+  updateFileCurrency: (fileId: string, currency: string) => void;
+  updateFileTransactions: (fileId: string, transactions: Transaction[]) => void;
 
-  // Mapping
-  columnMapping: ColumnMapping | null;
-  detectedFormat: string | null;
-  setColumnMapping: (mapping: ColumnMapping) => void;
-  setDetectedFormat: (format: string | null) => void;
-
-  // Transactions
+  // Merged transactions (after all files are mapped and merged)
   transactions: Transaction[];
   setTransactions: (txns: Transaction[]) => void;
 

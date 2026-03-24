@@ -1,14 +1,16 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAppStore } from '@/store/useAppStore';
-import { ColumnMapping } from '@/types';
-import { detectFormat, suggestMapping } from '@/lib/mapping/auto-detect';
+import { ColumnMapping, ImportedFile, Transaction, ValidationIssue } from '@/types';
+import { suggestMapping } from '@/lib/mapping/auto-detect';
 import { mapToTransactions, MappingError } from '@/lib/mapping/column-mapper';
 import { fetchFxRates, lookupRate, getCachedRates } from '@/lib/engine/fx';
 import { calculateGains } from '@/lib/engine/gains';
+import { validateTransactions } from '@/lib/engine/validate-transactions';
 import { format as formatDate, min as dateMin, max as dateMax } from 'date-fns';
-import { Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle2, FileSpreadsheet, ShieldAlert } from 'lucide-react';
+import HoldingsChart from '../results/HoldingsChart';
 
 const FIELD_OPTIONS = [
   { value: '', label: '-- Ignore --' },
@@ -31,39 +33,42 @@ const FIELD_OPTIONS = [
 const REQUIRED_FIELDS = ['date', 'action', 'symbol', 'quantity', 'price'];
 const REQUIRED_FIELDS_GL = ['dateSold', 'totalProceeds', 'acbTotal', 'quantity'];
 
-export default function ColumnMapper() {
-  const rawData = useAppStore((s) => s.rawData);
-  const setColumnMapping = useAppStore((s) => s.setColumnMapping);
-  const setDetectedFormat = useAppStore((s) => s.setDetectedFormat);
-  const setTransactions = useAppStore((s) => s.setTransactions);
-  const setResults = useAppStore((s) => s.setResults);
-  const setStep = useAppStore((s) => s.setStep);
-
+// ─── Per-file mapping panel ──────────────────────────────────
+function FileMappingPanel({
+  file,
+  onMappingChange,
+  onCurrencyChange,
+}: {
+  file: ImportedFile;
+  onMappingChange: (assignments: Record<number, string>, isGl: boolean, currency: string) => void;
+  onCurrencyChange: (currency: string) => void;
+}) {
   const [assignments, setAssignments] = useState<Record<number, string>>({});
-  const [detectedName, setDetectedName] = useState<string | null>(null);
   const [isGlMode, setIsGlMode] = useState(false);
-  const [glCurrency, setGlCurrency] = useState('USD');
-  const [errors, setErrors] = useState<MappingError[]>([]);
-  const [processing, setProcessing] = useState(false);
-  const [fxStatus, setFxStatus] = useState<string | null>(null);
+  const [isBenefitHistory, setIsBenefitHistory] = useState(false);
+  const [glCurrency, setGlCurrency] = useState(file.currencyOverride || 'USD');
 
   useEffect(() => {
-    if (!rawData) return;
+    if (file.detectedFormat === 'E*Trade Benefit History') {
+      setIsBenefitHistory(true);
+      setIsGlMode(false);
+      // No column mapping needed for BenefitHistory — it's auto-parsed
+      return;
+    }
 
-    const detection = detectFormat(rawData.headers);
-    if (detection) {
-      setDetectedName(detection.format);
-      setDetectedFormat(detection.format);
-      const gl = detection.mapping.glMode === true;
+    if (file.mapping) {
+      const gl = file.mapping.glMode === true;
       setIsGlMode(gl);
+      // Reconstruct assignments from detected mapping
       const auto: Record<number, string> = {};
-      const m = detection.mapping;
+      const m = file.mapping;
       if (gl) {
         if (m.dateSold !== undefined && m.dateSold >= 0) auto[m.dateSold] = 'dateSold';
         if (m.dateAcquired !== undefined && m.dateAcquired >= 0) auto[m.dateAcquired] = 'dateAcquired';
         if (m.totalProceeds !== undefined && m.totalProceeds >= 0) auto[m.totalProceeds] = 'totalProceeds';
         if (m.acbTotal !== undefined && m.acbTotal >= 0) auto[m.acbTotal] = 'acbTotal';
         if (m.quantity >= 0) auto[m.quantity] = 'quantity';
+        if (m.symbol !== undefined && m.symbol >= 0) auto[m.symbol] = 'symbol';
       } else {
         if (m.date >= 0) auto[m.date] = 'date';
         if (m.settlementDate !== undefined && m.settlementDate >= 0) auto[m.settlementDate] = 'settlementDate';
@@ -73,12 +78,11 @@ export default function ColumnMapper() {
         if (m.price !== undefined && m.price >= 0) auto[m.price] = 'price';
         if (m.commission !== undefined && m.commission >= 0) auto[m.commission] = 'commission';
         if (m.currency !== undefined && m.currency >= 0) auto[m.currency] = 'currency';
-        if (m.totalAmount !== undefined && m.totalAmount >= 0) auto[m.totalAmount] = 'totalAmount';
       }
       setAssignments(auto);
     } else {
-      setIsGlMode(false);
-      const suggestion = suggestMapping(rawData.headers);
+      // Try to suggest mapping
+      const suggestion = suggestMapping(file.rawData.headers);
       const auto: Record<number, string> = {};
       if (suggestion.date !== undefined) auto[suggestion.date] = 'date';
       if (suggestion.action !== undefined) auto[suggestion.action] = 'action';
@@ -89,69 +93,304 @@ export default function ColumnMapper() {
       if (suggestion.currency !== undefined) auto[suggestion.currency] = 'currency';
       setAssignments(auto);
     }
-  }, [rawData, setDetectedFormat]);
+  }, [file]);
 
-  const buildMapping = useCallback((): ColumnMapping | null => {
+  useEffect(() => {
+    onMappingChange(assignments, isGlMode, glCurrency);
+  }, [assignments, isGlMode, glCurrency]);
+
+  // BenefitHistory files are auto-parsed — just show a summary
+  if (isBenefitHistory) {
+    return (
+      <div className="py-6 text-center">
+        <CheckCircle2 size={28} className="mx-auto mb-3" style={{ color: 'var(--color-primary)' }} />
+        <p className="text-sm font-semibold text-on-surface">
+          Auto-detected: <strong>E*Trade Benefit History</strong>
+        </p>
+        <p className="text-xs text-secondary mt-1">
+          RSU vest events and ESPP purchases will be extracted automatically.
+        </p>
+        <div className="mt-4 flex items-center justify-center gap-3">
+          <label className="text-xs font-bold uppercase tracking-wider text-secondary" style={{ fontFamily: 'var(--font-display)' }}>
+            Currency
+          </label>
+          <select
+            value={glCurrency}
+            onChange={(e) => { setGlCurrency(e.target.value); onCurrencyChange(e.target.value); }}
+            className="rounded px-2 py-1 text-xs font-semibold outline-none"
+            style={{
+              background: 'var(--color-surface-lowest)',
+              border: `1px solid rgba(var(--color-outline-variant-raw), 0.4)`,
+              fontFamily: 'var(--font-display)',
+            }}
+          >
+            <option value="USD">USD</option>
+            <option value="CAD">CAD</option>
+          </select>
+        </div>
+      </div>
+    );
+  }
+
+  const assignedFields = Object.values(assignments).filter(Boolean);
+  const required = isGlMode ? REQUIRED_FIELDS_GL : REQUIRED_FIELDS;
+  const missingFields = required.filter((f) => !assignedFields.includes(f));
+  const previewRows = file.rawData.rows.slice(0, 4);
+
+  return (
+    <div>
+      {file.detectedFormat && (
+        <div
+          className="mb-3 flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium"
+          style={{
+            background: 'var(--color-secondary-container)',
+            color: 'var(--color-primary)',
+            fontFamily: 'var(--font-display)',
+          }}
+        >
+          <CheckCircle2 size={12} />
+          Detected: <strong>{file.detectedFormat}</strong>
+        </div>
+      )}
+
+      <p className="text-xs text-secondary mb-3">
+        {isGlMode
+          ? 'G&L report mode — assign Date Sold, Total Proceeds, ACB, Quantity.'
+          : 'Assign each column to a field. Required: Date, Action, Symbol, Quantity, Price.'}
+      </p>
+
+      {/* Currency picker for G&L mode */}
+      {isGlMode && (
+        <div className="mb-3 flex items-center gap-3 rounded-lg px-3 py-2" style={{ background: 'var(--color-surface-low)' }}>
+          <label className="text-xs font-bold uppercase tracking-wider text-secondary" style={{ fontFamily: 'var(--font-display)' }}>
+            Currency
+          </label>
+          <select
+            value={glCurrency}
+            onChange={(e) => { setGlCurrency(e.target.value); onCurrencyChange(e.target.value); }}
+            className="rounded px-2 py-1 text-xs font-semibold outline-none"
+            style={{
+              background: 'var(--color-surface-lowest)',
+              border: `1px solid rgba(var(--color-outline-variant-raw), 0.4)`,
+              fontFamily: 'var(--font-display)',
+            }}
+          >
+            <option value="USD">USD — US Dollar</option>
+            <option value="CAD">CAD — Canadian Dollar</option>
+            <option value="GBP">GBP — British Pound</option>
+            <option value="EUR">EUR — Euro</option>
+          </select>
+        </div>
+      )}
+
+      {/* Column mapping table */}
+      <div className="overflow-x-auto rounded-lg custom-scrollbar pb-2" style={{ background: 'var(--color-surface-low)' }}>
+        <table className="w-full text-sm min-w-max">
+          <thead>
+            <tr style={{ borderBottom: `1px solid rgba(var(--color-outline-variant-raw), 0.2)` }}>
+              {file.rawData.headers.map((header, i) => (
+                <th key={i} className="px-3 py-2 text-left min-w-[130px]">
+                  <div
+                    className="mb-1 truncate text-xs font-bold uppercase tracking-wider text-secondary"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                    title={header}
+                  >
+                    {header}
+                  </div>
+                  <select
+                    value={assignments[i] ?? ''}
+                    onChange={(e) => setAssignments((prev) => ({ ...prev, [i]: e.target.value }))}
+                    className="w-full rounded px-2 py-1 text-xs font-semibold outline-none transition-all"
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      background: assignments[i] ? `rgba(var(--color-primary-fixed-raw), 0.2)` : 'var(--color-surface-lowest)',
+                      border: `1px solid ${assignments[i] ? 'var(--color-primary)' : `rgba(var(--color-outline-variant-raw), 0.4)`}`,
+                      color: assignments[i] ? 'var(--color-primary)' : 'var(--color-on-surface-variant)',
+                    }}
+                  >
+                    {FIELD_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {previewRows.map((row, i) => (
+              <tr
+                key={i}
+                style={{
+                  borderTop: `1px solid rgba(var(--color-outline-variant-raw), 0.12)`,
+                  background: i % 2 === 0 ? 'var(--color-surface)' : 'var(--color-surface-low)',
+                }}
+              >
+                {row.map((cell, j) => (
+                  <td key={j} className="px-3 py-1.5 text-xs text-on-surface-variant truncate max-w-[180px]" title={cell}>
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-1 text-xs text-secondary">
+        Showing {previewRows.length} of {file.rawData.rows.length} rows
+      </div>
+
+      {missingFields.length > 0 && (
+        <div className="mt-3 flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--color-loss)', fontFamily: 'var(--font-display)' }}>
+          <AlertTriangle size={12} />
+          Missing: {missingFields.join(', ')}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main ColumnMapper ───────────────────────────────────────
+export default function ColumnMapper() {
+  const currentStep = useAppStore((s) => s.currentStep);
+  const transactions = useAppStore((s) => s.transactions);
+  const importedFiles = useAppStore((s) => s.importedFiles);
+  const updateFileMapping = useAppStore((s) => s.updateFileMapping);
+  const updateFileCurrency = useAppStore((s) => s.updateFileCurrency);
+  const setTransactions = useAppStore((s) => s.setTransactions);
+  const setResults = useAppStore((s) => s.setResults);
+  const setStep = useAppStore((s) => s.setStep);
+
+  const [fileMappingState, setFileMappingState] = useState<
+    Map<string, { assignments: Record<number, string>; isGl: boolean; currency: string }>
+  >(new Map());
+  const [errors, setErrors] = useState<MappingError[]>([]);
+  const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
+  const [processing, setProcessing] = useState(false);
+  const [fxStatus, setFxStatus] = useState<string | null>(null);
+
+  const handleMappingChange = useCallback((fileId: string, assignments: Record<number, string>, isGl: boolean, currency: string) => {
+    setFileMappingState((prev) => {
+      const next = new Map(prev);
+      next.set(fileId, { assignments, isGl, currency });
+      return next;
+    });
+  }, []);
+
+  const handleCurrencyChange = useCallback((fileId: string, currency: string) => {
+    updateFileCurrency(fileId, currency);
+  }, [updateFileCurrency]);
+
+  // Build ColumnMapping from assignments
+  const buildMapping = useCallback((assignments: Record<number, string>, isGl: boolean, currency: string): ColumnMapping | null => {
     const reverse: Record<string, number> = {};
     for (const [colIdx, field] of Object.entries(assignments)) {
       if (field) reverse[field] = parseInt(colIdx);
     }
 
-    const requiredFields = isGlMode ? REQUIRED_FIELDS_GL : REQUIRED_FIELDS;
-    for (const req of requiredFields) {
-      if (reverse[req] === undefined) return null;
-    }
-
-    if (isGlMode) {
+    if (isGl) {
+      if (reverse.dateSold === undefined || reverse.totalProceeds === undefined ||
+          reverse.acbTotal === undefined || reverse.quantity === undefined) return null;
       return {
         date: reverse.dateSold,
         quantity: reverse.quantity,
         glMode: true,
-        glCurrency,
+        glCurrency: currency,
         dateSold: reverse.dateSold,
         dateAcquired: reverse.dateAcquired,
         totalProceeds: reverse.totalProceeds,
         acbTotal: reverse.acbTotal,
+        symbol: reverse.symbol,
       };
     }
 
+    if (reverse.date === undefined || reverse.quantity === undefined) return null;
     return {
       date: reverse.date,
+      quantity: reverse.quantity,
       action: reverse.action,
       symbol: reverse.symbol,
-      quantity: reverse.quantity,
       price: reverse.price,
       commission: reverse.commission,
       currency: reverse.currency,
-      totalAmount: reverse.totalAmount,
       settlementDate: reverse.settlementDate,
+      totalAmount: reverse.totalAmount,
     };
-  }, [assignments, isGlMode, glCurrency]);
+  }, []);
 
-  const mapping = buildMapping();
-  const activeRequiredFields = isGlMode ? REQUIRED_FIELDS_GL : REQUIRED_FIELDS;
-  const missingFields = activeRequiredFields.filter((f) => {
-    return !Object.values(assignments).includes(f);
-  });
+  const isFileValid = useCallback((fileId: string) => {
+    const file = importedFiles.find((f) => f.id === fileId);
+    if (!file) return false;
+    if (file.detectedFormat === 'E*Trade Benefit History') return true;
+
+    const state = fileMappingState.get(fileId);
+    if (!state) return false;
+
+    const assignedFields = Object.values(state.assignments).filter(Boolean);
+    const required = state.isGl ? REQUIRED_FIELDS_GL : REQUIRED_FIELDS;
+    return required.every((f) => assignedFields.includes(f));
+  }, [importedFiles, fileMappingState]);
+
+  const allFilesValid = importedFiles.every(f => isFileValid(f.id));
 
   const handleProcess = async () => {
-    if (!rawData || !mapping) return;
     setProcessing(true);
     setErrors([]);
+    setValidationIssues([]);
     setFxStatus(null);
 
     try {
-      setColumnMapping(mapping);
+      let allTransactions: Transaction[] = [];
+      const allErrors: MappingError[] = [];
 
-      const { transactions, errors: mapErrors } = mapToTransactions(rawData, mapping);
-      setErrors(mapErrors);
+      for (const file of importedFiles) {
+        let mapping: ColumnMapping | null = null;
 
-      if (transactions.length === 0) {
+        if (file.detectedFormat === 'E*Trade Benefit History') {
+          // Use benefitHistoryMode mapping
+          mapping = {
+            date: -1,
+            quantity: -1,
+            benefitHistoryMode: true,
+            glCurrency: file.currencyOverride || 'USD',
+          };
+        } else {
+          const state = fileMappingState.get(file.id);
+          if (!state) continue;
+          mapping = buildMapping(state.assignments, state.isGl, state.currency);
+        }
+
+        if (!mapping) {
+          allErrors.push({
+            row: 0,
+            field: 'general',
+            value: file.name,
+            message: `Missing required column mapping for ${file.name}`,
+          });
+          continue;
+        }
+
+        updateFileMapping(file.id, mapping);
+        const { transactions, errors: mapErrors } = mapToTransactions(file.rawData, mapping);
+
+        // Tag transactions with source file
+        for (const txn of transactions) {
+          txn.sourceFileId = file.id;
+        }
+
+        allTransactions.push(...transactions);
+        allErrors.push(...mapErrors.map((e) => ({ ...e, message: `[${file.name}] ${e.message}` })));
+      }
+
+      setErrors(allErrors);
+
+      if (allErrors.length > 0 || allTransactions.length === 0) {
         setProcessing(false);
         return;
       }
 
-      const foreignTxns = transactions.filter((t) => t.currency !== 'CAD');
+      // ── FX conversion ────────────────────────────────────
+      const foreignTxns = allTransactions.filter((t) => t.currency !== 'CAD');
       if (foreignTxns.length > 0) {
         const currencies = [...new Set(foreignTxns.map((t) => t.currency))];
 
@@ -184,11 +423,62 @@ export default function ColumnMapper() {
         }
       }
 
-      setFxStatus(null);
-      setTransactions(transactions);
+      // ── Cross-reference FMV for BenefitHistory BUYs with $0 price ──
+      // Find FMV from G&L-sourced BUY transactions
+      const fmvByDate = new Map<string, number>();
+      const glBuysByDate = new Map<string, number>();
+      for (const txn of allTransactions) {
+        if (txn.action === 'BUY' && txn.pricePerShareCAD > 0) {
+          const key = formatDate(txn.date, 'yyyy-MM-dd');
+          if (!fmvByDate.has(key)) {
+            fmvByDate.set(key, txn.pricePerShareCAD);
+          }
+          glBuysByDate.set(key, (glBuysByDate.get(key) || 0) + txn.quantity);
+        }
+      }
 
-      const result = calculateGains(transactions);
-      setResults(result.dispositions, result.superficialLosses, result.acbSnapshots);
+      // Apply FMV to zero-price BUYs (from BenefitHistory) and deduplicate
+      const bhBuys = allTransactions.filter(
+        (t) => t.action === 'BUY' && t.pricePerShareCAD === 0
+      );
+      for (const txn of bhBuys) {
+        const key = formatDate(txn.date, 'yyyy-MM-dd');
+        let fmv = fmvByDate.get(key) || 0;
+        if (fmv === 0) {
+          // Look for closest earlier FMV
+          const allDates = [...fmvByDate.entries()].sort();
+          for (const [d, v] of allDates) {
+            if (d <= key) fmv = v;
+          }
+        }
+        txn.pricePerShare = fmv;
+        txn.pricePerShareCAD = fmv;
+        txn.totalCAD = txn.quantity * fmv;
+
+        // Reduce quantity by shares already accounted for in G&L
+        const glCount = glBuysByDate.get(key) || 0;
+        if (glCount > 0) {
+          const reduce = Math.min(txn.quantity, glCount);
+          txn.quantity -= reduce;
+          txn.totalCAD = txn.quantity * fmv;
+          glBuysByDate.set(key, glCount - reduce);
+        }
+      }
+
+      // Remove zero-quantity transactions after dedup
+      allTransactions = allTransactions.filter((t) => t.quantity > 0);
+
+      // Sort chronological
+      allTransactions.sort((a, b) => a.settlementDate.getTime() - b.settlementDate.getTime());
+
+      // ── Validate ─────────────────────────────────────────
+      setFxStatus('Validating transactions...');
+      const issues = validateTransactions(allTransactions);
+      setValidationIssues(issues);
+
+      setFxStatus(null);
+      setTransactions(allTransactions);
+      setStep('review');
     } catch (err) {
       setErrors([{
         row: 0,
@@ -201,219 +491,241 @@ export default function ColumnMapper() {
     }
   };
 
-  if (!rawData) return null;
+  const handleCalculateGains = useCallback(() => {
+    try {
+      const result = calculateGains(transactions);
+      setResults(result.dispositions, result.superficialLosses, result.acbSnapshots);
+    } catch (err) {
+      alert('Failed to calculate gains: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
+  }, [transactions, setResults]);
 
-  const previewRows = rawData.rows.slice(0, 5);
+  if (importedFiles.length === 0) return null;
+
+  if (currentStep === 'review') {
+    return (
+      <div className="mx-auto max-w-4xl">
+        <h2 className="text-3xl font-extrabold tracking-tight text-primary mb-1" style={{ fontFamily: 'var(--font-display)' }}>
+          Review Merged Transactions
+        </h2>
+        <p className="text-sm text-secondary mb-6">
+          Your files have been successfully merged. Review the transaction summary and any validation warnings below before calculating your capital gains.
+        </p>
+
+        {/* Validation issues banner */}
+        {validationIssues.length > 0 && (
+          <div className="mb-6 rounded-lg p-5" style={{ background: `rgba(var(--color-tertiary-raw), 0.06)` }}>
+            <h3 className="text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2" style={{ color: 'var(--color-loss)', fontFamily: 'var(--font-display)' }}>
+              <ShieldAlert size={16} />
+              {validationIssues.length} Validation Warning{validationIssues.length > 1 ? 's' : ''}
+            </h3>
+            <ul className="text-sm space-y-2" style={{ color: 'var(--color-loss)' }}>
+              {validationIssues.map((issue, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="shrink-0 pt-0.5">{issue.type === 'error' ? '🔴' : '⚠️'}</span>
+                  <span>{issue.message}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs mt-4 opacity-80" style={{ color: 'var(--color-loss)' }}>
+              You can proceed anyway, but double-check your uploaded files if you see a negative balance warning.
+            </p>
+          </div>
+        )}
+
+        <div className="mb-6 rounded-xl overflow-hidden border" style={{ borderColor: 'rgba(var(--color-outline-variant-raw), 0.2)' }}>
+          <HoldingsChart transactions={transactions} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="rounded-xl p-5" style={{ background: 'var(--color-surface-low)' }}>
+            <p className="text-xs font-bold uppercase tracking-wider text-secondary mb-1" style={{ fontFamily: 'var(--font-display)' }}>Total Transactions</p>
+            <p className="text-3xl font-light text-on-surface">{transactions.length}</p>
+          </div>
+          <div className="rounded-xl p-5" style={{ background: 'var(--color-surface-low)' }}>
+            <p className="text-xs font-bold uppercase tracking-wider text-secondary mb-1" style={{ fontFamily: 'var(--font-display)' }}>Total Buys / Sells</p>
+            <p className="text-3xl font-light text-on-surface">
+              {transactions.filter(t => t.action === 'BUY').length} / {transactions.filter(t => t.action === 'SELL').length}
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-lg overflow-hidden flex flex-col max-h-[500px]" style={{ background: 'var(--color-surface-low)' }}>
+          <div className="overflow-x-auto overflow-y-auto flex-1 custom-scrollbar">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 z-10" style={{ background: 'var(--color-surface-low)', boxShadow: '0 1px 0 rgba(var(--color-outline-variant-raw), 0.2)' }}>
+                <tr>
+                  <th className="px-4 py-3 text-left font-bold text-secondary text-xs uppercase tracking-wider">Date</th>
+                  <th className="px-4 py-3 text-left font-bold text-secondary text-xs uppercase tracking-wider">Action</th>
+                  <th className="px-4 py-3 text-left font-bold text-secondary text-xs uppercase tracking-wider">Symbol</th>
+                  <th className="px-4 py-3 text-right font-bold text-secondary text-xs uppercase tracking-wider">Quantity</th>
+                  <th className="px-4 py-3 text-right font-bold text-secondary text-xs uppercase tracking-wider">Price (CAD)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactions.map((txn, i) => (
+                  <tr key={txn.id} style={{ borderTop: i === 0 ? 'none' : `1px solid rgba(var(--color-outline-variant-raw), 0.12)`, background: i % 2 === 0 ? 'var(--color-surface)' : 'transparent' }}>
+                    <td className="px-4 py-2 text-on-surface-variant font-medium whitespace-nowrap">{formatDate(txn.date, 'yyyy-MM-dd')}</td>
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      <span
+                        className="px-2 py-0.5 rounded text-xs font-semibold"
+                        style={{
+                          background: txn.action === 'BUY' ? `rgba(var(--color-primary-fixed-raw), 0.15)` : `rgba(var(--color-tertiary-raw), 0.1)`,
+                          color: txn.action === 'BUY' ? 'var(--color-primary)' : 'var(--color-loss)'
+                        }}
+                      >
+                        {txn.action}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-on-surface font-semibold whitespace-nowrap">{txn.symbol}</td>
+                    <td className="px-4 py-2 text-on-surface-variant text-right whitespace-nowrap">{txn.quantity.toFixed(4)}</td>
+                    <td className="px-4 py-2 text-on-surface-variant text-right whitespace-nowrap">${txn.pricePerShareCAD.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="px-4 py-3 text-center text-xs text-secondary border-t" style={{ borderColor: `rgba(var(--color-outline-variant-raw), 0.12)` }}>
+            Showing all {transactions.length} rows
+          </div>
+        </div>
+
+        <div className="mt-8 flex justify-between">
+          <button
+            onClick={() => setStep('mapping')}
+            className="px-6 py-2 text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors rounded"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            ← Back to Mapping
+          </button>
+          <button
+            onClick={handleCalculateGains}
+            className="btn-primary px-8 py-3 text-sm font-bold text-white rounded transition-all shadow-md"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            Calculate Capital Gains
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl">
-      {/* Header */}
       <h2
         className="text-3xl font-extrabold tracking-tight text-primary mb-1"
         style={{ fontFamily: 'var(--font-display)' }}
       >
         Map Your Columns
       </h2>
-
-      {/* Format detection banner */}
-      {detectedName && (
-        <div
-          className="mb-4 flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium"
-          style={{
-            background: 'var(--color-secondary-container)',
-            color: 'var(--color-primary)',
-            fontFamily: 'var(--font-display)',
-          }}
-        >
-          <CheckCircle2 size={14} />
-          Detected format: <strong>{detectedName}</strong>. Column mapping auto-populated.
-        </div>
-      )}
-
-      <p className="text-sm text-secondary mb-5">
-        {isGlMode
-          ? 'G&L report mode — each row imports as a matched Buy + Sell lot. Required: Date Sold, Total Proceeds, Adjusted Cost Basis, Quantity.'
-          : 'Assign each column to a field. Required: Date, Action, Symbol, Quantity, Price.'}
+      <p className="text-sm text-secondary mb-6">
+        Each file needs its columns mapped to standard fields. Auto-detected formats are pre-populated.
       </p>
 
-      {/* G&L currency picker */}
-      {isGlMode && (
-        <div
-          className="mb-5 flex items-center gap-3 rounded-lg px-4 py-3"
-          style={{ background: 'var(--color-surface-low)' }}
-        >
-          <label
-            className="text-xs font-bold uppercase tracking-wider text-secondary"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Report currency
-          </label>
-          <select
-            value={glCurrency}
-            onChange={(e) => setGlCurrency(e.target.value)}
-            className="rounded px-2 py-1 text-xs font-semibold text-on-surface outline-none"
-            style={{
-              background: 'var(--color-surface-lowest)',
-              border: `1px solid rgba(var(--color-outline-variant-raw), 0.4)`,
-              fontFamily: 'var(--font-display)',
-            }}
-          >
-            <option value="USD">USD — US Dollar</option>
-            <option value="CAD">CAD — Canadian Dollar</option>
-            <option value="GBP">GBP — British Pound</option>
-            <option value="EUR">EUR — Euro</option>
-            <option value="AUD">AUD — Australian Dollar</option>
-            <option value="CHF">CHF — Swiss Franc</option>
-          </select>
-          {glCurrency !== 'CAD' && (
-            <span className="text-xs text-secondary">Exchange rates fetched automatically from Bank of Canada.</span>
-          )}
-        </div>
-      )}
-
-      {/* Column mapping table */}
-      <div
-        className="overflow-x-auto rounded-lg"
-        style={{ background: 'var(--color-surface-low)' }}
-      >
-        <table className="w-full text-sm">
-          <thead>
-            <tr style={{ borderBottom: `1px solid rgba(var(--color-outline-variant-raw), 0.2)` }}>
-              {rawData.headers.map((header, i) => (
-                <th
-                  key={i}
-                  className="px-3 py-3 text-left min-w-[140px]"
-                >
-                  <div
-                    className="mb-1.5 truncate text-xs font-bold uppercase tracking-wider text-secondary"
-                    style={{ fontFamily: 'var(--font-display)' }}
-                    title={header}
-                  >
-                    {header}
-                  </div>
-                  <select
-                    value={assignments[i] ?? ''}
-                    onChange={(e) => setAssignments((prev) => ({ ...prev, [i]: e.target.value }))}
-                    className="w-full rounded px-2 py-1 text-xs font-semibold outline-none transition-all"
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      background: assignments[i]
-                        ? `rgba(var(--color-primary-fixed-raw), 0.2)`
-                        : 'var(--color-surface-lowest)',
-                      border: `1px solid ${assignments[i]
-                        ? 'var(--color-primary)'
-                        : `rgba(var(--color-outline-variant-raw), 0.4)`}`,
-                      color: assignments[i]
-                        ? 'var(--color-primary)'
-                        : 'var(--color-on-surface-variant)',
-                    }}
-                  >
-                    {FIELD_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {previewRows.map((row, i) => (
-              <tr
-                key={i}
-                style={{
-                  borderTop: `1px solid rgba(var(--color-outline-variant-raw), 0.12)`,
-                  background: i % 2 === 0 ? 'var(--color-surface)' : 'var(--color-surface-low)',
+      <div className="flex flex-col md:flex-row gap-8 items-start">
+        {/* Sidebar */}
+        <div className="w-full md:w-1/3 flex flex-col gap-3 md:sticky md:top-6">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-secondary mb-1" style={{ fontFamily: 'var(--font-display)' }}>
+            Imported Files ({importedFiles.length})
+          </h3>
+          {importedFiles.map((file) => {
+            const valid = isFileValid(file.id);
+            return (
+              <div 
+                key={`sidebar-${file.id}`} 
+                className="p-3 rounded-lg flex items-center gap-3 transition-colors"
+                style={{ 
+                  background: valid ? 'rgba(var(--color-primary-fixed-raw), 0.05)' : 'var(--color-surface-low)',
+                  border: `1px solid ${valid ? 'var(--color-primary)' : 'rgba(var(--color-outline-variant-raw), 0.4)'}`
                 }}
               >
-                {row.map((cell, j) => (
-                  <td
-                    key={j}
-                    className="px-3 py-2 text-xs text-on-surface-variant truncate max-w-[200px]"
-                    title={cell}
-                  >
-                    {cell}
-                  </td>
+                {valid ? (
+                  <CheckCircle2 size={18} className="text-primary shrink-0" />
+                ) : (
+                  <div className="w-[18px] h-[18px] rounded-full border-2 shrink-0 border-secondary opacity-50" />
+                )}
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-on-surface truncate">{file.name}</p>
+                  <p className="text-xs mt-0.5" style={{ color: valid ? 'var(--color-primary)' : 'var(--color-secondary)' }}>
+                    {valid ? 'Mapping complete' : 'Mapping required'}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+
+          <div className="mt-4 flex flex-col gap-3">
+            <button
+              onClick={handleProcess}
+              disabled={processing || !allFilesValid}
+              className="btn-primary w-full py-3 text-sm font-bold text-white rounded disabled:opacity-40 transition-all flex items-center justify-center gap-2 shadow-md"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              {processing && <Loader2 size={14} className="animate-spin" />}
+              Merge &amp; Review →
+            </button>
+            <button
+              onClick={() => setStep('import')}
+              className="w-full py-2 text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors rounded"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              ← Back to Import
+            </button>
+          </div>
+
+          {/* Row errors map over */}
+          {errors.length > 0 && (
+            <div className="mt-2 rounded-lg p-4" style={{ background: `rgba(var(--color-tertiary-raw), 0.06)` }}>
+              <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--color-loss)', fontFamily: 'var(--font-display)' }}>
+                {errors.length} mapping error(s)
+              </p>
+              <ul className="text-xs space-y-1 max-h-32 overflow-y-auto" style={{ color: 'var(--color-loss)' }}>
+                {errors.slice(0, 8).map((err, i) => (
+                  <li key={i} className="truncate" title={`Row ${err.row}: ${err.message}`}>Row {err.row}: {err.message}</li>
                 ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                {errors.length > 8 && <li>…and {errors.length - 8} more</li>}
+              </ul>
+            </div>
+          )}
 
-      <div className="mt-2 text-xs text-secondary">
-        Showing {previewRows.length} of {rawData.rows.length} rows
-      </div>
+          {/* FX status */}
+          {fxStatus && (
+            <div className="mt-2 flex items-center gap-2 text-xs text-secondary">
+              <Loader2 size={12} className="animate-spin" />
+              {fxStatus}
+            </div>
+          )}
+        </div>
 
-      {/* Missing fields warning */}
-      {missingFields.length > 0 && (
-        <div
-          className="mt-4 flex items-center gap-2 text-xs font-semibold"
-          style={{ color: 'var(--color-loss)', fontFamily: 'var(--font-display)' }}
-        >
-          <AlertTriangle size={13} />
-          Missing required fields:{' '}
-          {missingFields.map((f) => (
-            <span
-              key={f}
-              className="px-2 py-0.5 rounded"
-              style={{
-                background: `rgba(var(--color-tertiary-raw), 0.08)`,
-                color: 'var(--color-loss)',
+        {/* Main Content (Stacked Panels) */}
+        <div className="w-full md:w-2/3 flex flex-col gap-6">
+          {importedFiles.map((file) => (
+            <div 
+              key={file.id} 
+              className="p-5 rounded-xl transition-colors"
+              style={{ 
+                background: 'var(--color-surface)', 
+                border: `1px solid rgba(var(--color-outline-variant-raw), 0.2)`,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
               }}
             >
-              {f}
-            </span>
+              <div className="mb-4 flex items-center gap-3 border-b pb-3" style={{ borderColor: 'rgba(var(--color-outline-variant-raw), 0.1)' }}>
+                <FileSpreadsheet size={18} className="text-primary" />
+                <h4 className="text-lg font-bold text-on-surface flex-1 truncate">{file.name}</h4>
+                {file.detectedFormat && (
+                  <span className="px-2 py-1 rounded text-xs font-bold" style={{ background: `rgba(var(--color-primary-fixed-raw), 0.15)`, color: 'var(--color-primary)' }}>
+                    {file.detectedFormat}
+                  </span>
+                )}
+              </div>
+              <FileMappingPanel
+                file={file}
+                onMappingChange={(a, gl, c) => handleMappingChange(file.id, a, gl, c)}
+                onCurrencyChange={(c) => handleCurrencyChange(file.id, c)}
+              />
+            </div>
           ))}
         </div>
-      )}
-
-      {/* Row errors */}
-      {errors.length > 0 && (
-        <div
-          className="mt-4 rounded-lg p-4"
-          style={{ background: `rgba(var(--color-tertiary-raw), 0.06)` }}
-        >
-          <p
-            className="text-xs font-bold uppercase tracking-wider mb-2"
-            style={{ color: 'var(--color-loss)', fontFamily: 'var(--font-display)' }}
-          >
-            {errors.length} row(s) had issues
-          </p>
-          <ul className="text-xs space-y-1 max-h-40 overflow-y-auto" style={{ color: 'var(--color-loss)' }}>
-            {errors.slice(0, 10).map((err, i) => (
-              <li key={i}>Row {err.row}: {err.message} ({err.field}: &quot;{err.value}&quot;)</li>
-            ))}
-            {errors.length > 10 && <li>…and {errors.length - 10} more</li>}
-          </ul>
-        </div>
-      )}
-
-      {/* FX fetch status */}
-      {fxStatus && (
-        <div className="mt-4 flex items-center gap-2 text-xs text-secondary">
-          <Loader2 size={12} className="animate-spin" />
-          {fxStatus}
-        </div>
-      )}
-
-      {/* Actions */}
-      <div className="mt-7 flex gap-3">
-        <button
-          onClick={() => setStep('import')}
-          className="px-4 py-2 text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors rounded"
-          style={{ fontFamily: 'var(--font-display)' }}
-        >
-          ← Back
-        </button>
-        <button
-          onClick={handleProcess}
-          disabled={!mapping || processing}
-          className="btn-primary px-6 py-2 text-xs font-bold text-white rounded disabled:opacity-40 transition-all flex items-center gap-2"
-          style={{ fontFamily: 'var(--font-display)' }}
-        >
-          {processing && <Loader2 size={12} className="animate-spin" />}
-          Calculate Gains
-        </button>
       </div>
     </div>
   );

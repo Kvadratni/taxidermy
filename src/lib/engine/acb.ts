@@ -92,34 +92,4 @@ export function addToAcb(state: AcbState, symbol: string, amount: number): void 
   setAcbRecord(state, rec);
 }
 
-export function calculateDispositions(
-  transactions: Transaction[]
-): { dispositions: DispositionResult[]; acbState: AcbState } {
-  const sorted = [...transactions].sort(
-    (a, b) => a.settlementDate.getTime() - b.settlementDate.getTime()
-  );
 
-  const state = createAcbState();
-  const dispositions: DispositionResult[] = [];
-
-  for (const txn of sorted) {
-    switch (txn.action) {
-      case 'BUY':
-        processBuy(state, txn);
-        break;
-      case 'SELL': {
-        const result = processSell(state, txn);
-        dispositions.push(result);
-        break;
-      }
-      case 'SPLIT':
-        processSplit(state, txn);
-        break;
-      case 'ROC':
-        processRoc(state, txn);
-        break;
-    }
-  }
-
-  return { dispositions, acbState: state };
-}

@@ -66,4 +66,13 @@ export const BROKERAGE_FORMATS: BrokerageFormat[] = [
       currency: -1,
     },
   },
+  {
+    name: 'E*Trade Benefit History',
+    headerSignature: ['Record Type', 'Grant Number', 'Event Type', 'Qty. or Amount', 'Grant Date'],
+    mapping: {
+      date: -1,
+      quantity: -1,
+      benefitHistoryMode: true,
+    },
+  },
 ];

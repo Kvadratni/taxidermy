@@ -77,11 +77,12 @@ export default function Schedule3Report() {
                 style={{
                   borderTop: `1px solid rgba(var(--color-outline-variant-raw), 0.12)`,
                   background: d.isSuperficialLoss
-                    ? `rgba(var(--color-tertiary-raw), 0.04)`
+                    ? `rgba(255, 100, 100, 0.1)` // Explicit warning red tint
                     : i % 2 === 0 ? 'var(--color-surface)' : 'var(--color-surface-low)',
                 }}
               >
-                <td className="px-4 py-3 text-xs text-secondary">
+                <td className="px-4 py-3 text-xs font-semibold" style={{ color: d.isSuperficialLoss ? 'var(--color-loss)' : 'var(--color-secondary)' }}>
+                  {d.isSuperficialLoss && <span title="Superficial Loss" className="mr-1">⚠️</span>}
                   {format(d.transaction.date, 'yyyy-MM-dd')}
                 </td>
                 <td className="px-4 py-3">

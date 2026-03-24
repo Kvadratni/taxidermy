@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import {
   AppState,
-  RawImportData,
+  ImportedFile,
   ColumnMapping,
   Transaction,
   DispositionResult,
@@ -17,17 +17,34 @@ export const useAppStore = create<AppState>((set) => ({
   currentStep: 'import',
   setStep: (step: WizardStep) => set({ currentStep: step }),
 
-  // Import
-  rawData: null,
-  setRawData: (data: RawImportData) => set({ rawData: data, currentStep: 'mapping' }),
+  // Multi-file import
+  importedFiles: [],
+  addFile: (file: ImportedFile) =>
+    set((state) => ({ importedFiles: [...state.importedFiles, file] })),
+  removeFile: (fileId: string) =>
+    set((state) => ({
+      importedFiles: state.importedFiles.filter((f) => f.id !== fileId),
+    })),
+  updateFileMapping: (fileId: string, mapping: ColumnMapping) =>
+    set((state) => ({
+      importedFiles: state.importedFiles.map((f) =>
+        f.id === fileId ? { ...f, mapping } : f
+      ),
+    })),
+  updateFileCurrency: (fileId: string, currency: string) =>
+    set((state) => ({
+      importedFiles: state.importedFiles.map((f) =>
+        f.id === fileId ? { ...f, currencyOverride: currency } : f
+      ),
+    })),
+  updateFileTransactions: (fileId: string, transactions: Transaction[]) =>
+    set((state) => ({
+      importedFiles: state.importedFiles.map((f) =>
+        f.id === fileId ? { ...f, transactions } : f
+      ),
+    })),
 
-  // Mapping
-  columnMapping: null,
-  detectedFormat: null,
-  setColumnMapping: (mapping: ColumnMapping) => set({ columnMapping: mapping }),
-  setDetectedFormat: (format: string | null) => set({ detectedFormat: format }),
-
-  // Transactions
+  // Merged transactions
   transactions: [],
   setTransactions: (txns: Transaction[]) => set({ transactions: txns }),
 
@@ -57,9 +74,7 @@ export const useAppStore = create<AppState>((set) => ({
   reset: () =>
     set({
       currentStep: 'import',
-      rawData: null,
-      columnMapping: null,
-      detectedFormat: null,
+      importedFiles: [],
       transactions: [],
       dispositions: [],
       superficialLosses: [],

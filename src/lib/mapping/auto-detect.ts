@@ -127,6 +127,24 @@ function buildMappingForFormat(
       };
     }
 
+    case 'E*Trade Benefit History': {
+      // This is a special multi-row format with Record Type + Event Type columns or ESPP columns
+      const recType = headerIndex(headers, 'Record Type');
+      const qty1 = headerIndex(headers, 'Qty. or Amount');
+      const qty2 = headerIndex(headers, 'Purchased Qty.');
+      
+      const hasQty = qty1 >= 0 || qty2 >= 0;
+
+      if (recType < 0 || !hasQty) return null;
+
+      return {
+        date: headerIndex(headers, 'Date'),
+        quantity: qty1 >= 0 ? qty1 : qty2,
+        benefitHistoryMode: true,
+        glCurrency: 'USD',
+      };
+    }
+
     default:
       return null;
   }

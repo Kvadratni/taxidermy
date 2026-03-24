@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { fetchGoogleSheet } from '@/lib/import/google-sheets';
+import { detectFormat } from '@/lib/mapping/auto-detect';
 import { Loader2 } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function GoogleSheetsImport() {
-  const setRawData = useAppStore((s) => s.setRawData);
+  const addFile = useAppStore((s) => s.addFile);
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,8 +18,18 @@ export default function GoogleSheetsImport() {
     setError(null);
     setLoading(true);
     try {
-      const data = await fetchGoogleSheet(url.trim());
-      setRawData(data);
+      const rawData = await fetchGoogleSheet(url.trim());
+      const detection = detectFormat(rawData.headers);
+
+      addFile({
+        id: uuidv4(),
+        name: 'Google Sheet',
+        rawData,
+        detectedFormat: detection?.format ?? null,
+        mapping: detection?.mapping ?? null,
+        transactions: [],
+        currencyOverride: 'USD',
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch Google Sheet');
     } finally {
