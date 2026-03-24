@@ -118,6 +118,7 @@ function mapGlToTransactions(
       currency,
       fxRate: 1,
       totalCAD: totalProceeds,
+      glOriginalAcb: acbTotal,
     });
   }
 

@@ -40,6 +40,8 @@ export interface Transaction {
   totalCAD: number;
   splitRatio?: number;
   rocPerShare?: number;
+  // Set on G&L-mode SELL transactions to preserve the original pre-FX ACB for display
+  glOriginalAcb?: number;
 }
 
 export interface AcbRecord {

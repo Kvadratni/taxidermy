@@ -3,6 +3,14 @@
 import { useAppStore } from '@/store/useAppStore';
 import { format } from 'date-fns';
 
+function FxAmount({ original, currency, fxRate }: { original: number; currency: string; fxRate: number }) {
+  return (
+    <div className="text-xs text-zinc-400 mt-0.5">
+      {currency} ${original.toFixed(2)} @ {fxRate.toFixed(4)}
+    </div>
+  );
+}
+
 export default function Schedule3Report() {
   const dispositions = useAppStore((s) => s.dispositions);
 
@@ -20,6 +28,12 @@ export default function Schedule3Report() {
   const totalGainLoss = dispositions.reduce((s, d) => s + d.allowedGainLoss, 0);
   const totalDenied = dispositions.reduce((s, d) => s + d.superficialLoss, 0);
 
+  const foreignCurrencies = [...new Set(
+    dispositions
+      .map((d) => d.transaction.currency)
+      .filter((c) => c !== 'CAD')
+  )];
+
   return (
     <div>
       <h3 className="text-base font-semibold text-zinc-900 mb-3">
@@ -28,6 +42,13 @@ export default function Schedule3Report() {
       <p className="text-xs text-zinc-500 mb-4">
         Part 3: Publicly traded shares, mutual fund units, and other securities
       </p>
+      {foreignCurrencies.length > 0 && (
+        <div className="mb-4 rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-700">
+          All amounts shown in <strong>CAD</strong>. Original values were in{' '}
+          <strong>{foreignCurrencies.join(', ')}</strong> — converted using Bank of Canada historical rates.
+          Original amounts shown in grey below each CAD value.
+        </div>
+      )}
 
       <div className="overflow-x-auto rounded-lg border border-zinc-200">
         <table className="w-full text-sm">
@@ -63,9 +84,21 @@ export default function Schedule3Report() {
                 <td className="px-3 py-2 text-zinc-600">{d.yearOfAcquisition}</td>
                 <td className="px-3 py-2 text-right text-zinc-700">
                   ${d.proceeds.toFixed(2)}
+                  {d.transaction.currency !== 'CAD' && d.transaction.fxRate !== 1 && (
+                    <FxAmount
+                      original={d.transaction.pricePerShare * d.transaction.quantity}
+                      currency={d.transaction.currency}
+                      fxRate={d.transaction.fxRate}
+                    />
+                  )}
                 </td>
                 <td className="px-3 py-2 text-right text-zinc-700">
                   ${d.acbOfSharesSold.toFixed(2)}
+                  {d.transaction.currency !== 'CAD' && d.transaction.glOriginalAcb !== undefined && (
+                    <div className="text-xs text-zinc-400 mt-0.5">
+                      {d.transaction.currency} ${d.transaction.glOriginalAcb.toFixed(2)} (acq. rate)
+                    </div>
+                  )}
                 </td>
                 <td className="px-3 py-2 text-right text-zinc-700">
                   ${d.outlays.toFixed(2)}
