@@ -125,7 +125,7 @@ export default function HoldingsChart({ transactions }: { transactions: Transact
   if (symbols.length === 0) return null;
 
   return (
-    <div className="w-full bg-surface-low rounded-xl p-5 mt-6 border border-outline-variant-raw/20 shadow-sm">
+    <div className="w-full bg-surface-low rounded-xl p-5 mt-6 border border-outline-variant-raw/20 shadow-sm" data-pdf-chart="holdings">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h3 className="text-sm font-bold uppercase tracking-wider text-secondary mb-1" style={{ fontFamily: 'var(--font-display)' }}>

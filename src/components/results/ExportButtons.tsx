@@ -3,18 +3,19 @@
 import { useAppStore } from '@/store/useAppStore';
 import { useMemo, useState } from 'react';
 import { downloadCsv, downloadFullExcel } from '@/lib/export/csv-export';
-import { downloadPdf } from '@/lib/export/pdf-generator';
+import { downloadFullPdf } from '@/lib/export/pdf-generator';
 import { estimateTax } from '@/lib/engine/tax-estimator';
 import { FileText, FileSpreadsheet, Printer, Table } from 'lucide-react';
 
 const ghostBtn = 'flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-on-surface-variant hover:text-primary transition-colors rounded';
 
 export default function ExportButtons() {
-  const allDispositions = useAppStore((s) => s.dispositions);
-  const allTransactions = useAppStore((s) => s.transactions);
-  const acbSnapshots    = useAppStore((s) => s.acbSnapshots);
-  const taxYear         = useAppStore((s) => s.taxYear);
-  const province        = useAppStore((s) => s.province);
+  const allDispositions    = useAppStore((s) => s.dispositions);
+  const allTransactions    = useAppStore((s) => s.transactions);
+  const acbSnapshots       = useAppStore((s) => s.acbSnapshots);
+  const superficialLosses  = useAppStore((s) => s.superficialLosses);
+  const taxYear            = useAppStore((s) => s.taxYear);
+  const province           = useAppStore((s) => s.province);
   const [showCsvModal, setShowCsvModal] = useState(false);
 
   const dispositions = useMemo(() => {
@@ -29,9 +30,16 @@ export default function ExportButtons() {
     <>
       <div className="flex items-center gap-1">
         <button
-          onClick={() => downloadPdf(dispositions, estimateTax(Math.max(0, net), province))}
+          onClick={() => downloadFullPdf(
+            dispositions,
+            allTransactions,
+            acbSnapshots,
+            superficialLosses,
+            estimateTax(Math.max(0, net), province),
+            taxYear,
+          )}
           className={ghostBtn}
-          title="Schedule 3 + tax summary as PDF"
+          title="Full report: Tax Summary, Charts, Schedule 3, Securities, All Transactions (PDF)"
         >
           <FileText size={12} /> PDF
         </button>

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "date-fns": "^4.1.0",
+    "html2canvas-pro": "^2.0.2",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^1.0.1",

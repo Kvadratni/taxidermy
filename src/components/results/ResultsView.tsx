@@ -4,6 +4,7 @@ import { useAppStore } from '@/store/useAppStore';
 import Schedule3Report from './Schedule3Report';
 import TaxSummary from './TaxSummary';
 import SuperficialLossDetails from './SuperficialLossDetails';
+import TransactionsTable from './TransactionsTable';
 import ExportButtons from './ExportButtons';
 import HoldingsChart from './HoldingsChart';
 
@@ -98,6 +99,17 @@ export default function ResultsView() {
         }}
       >
         <SuperficialLossDetails />
+      </section>
+
+      {/* All Transactions */}
+      <section
+        className="rounded-lg p-7"
+        style={{
+          background: 'var(--color-surface-lowest)',
+          boxShadow: `0 12px 40px rgba(var(--shadow-raw), 0.06)`,
+        }}
+      >
+        <TransactionsTable />
       </section>
     </div>
   );
