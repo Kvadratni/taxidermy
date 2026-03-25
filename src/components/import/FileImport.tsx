@@ -7,6 +7,7 @@ import { parseXlsxFile } from '@/lib/import/xlsx-parser';
 import { detectFormat } from '@/lib/mapping/auto-detect';
 import { FileSpreadsheet, X, CheckCircle2, Plus, Loader2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import { parsePdfBatch } from '@/lib/import/pdf-parser';
 
 export default function FileImport() {
   const importedFiles = useAppStore((s) => s.importedFiles);
@@ -69,63 +70,33 @@ export default function FileImport() {
       await handleFile(file);
     }
 
-    // Process PDFs
+    // Process PDFs (client-side, no server API needed)
     if (pdfs.length > 0) {
       setParsingPdf(true);
       setPdfProgress({ done: 0, total: pdfs.length });
       try {
-        const parsedResults: { date: string; action: string; symbol: string; quantity: number; price: number; commission: number; currency: string }[] = [];
-        const failures: { name: string; reason: string; preview?: string }[] = [];
+        const { transactions: pdfTxns, failures } = await parsePdfBatch(
+          pdfs,
+          (done, total) => setPdfProgress({ done, total }),
+        );
 
-        for (let i = 0; i < pdfs.length; i++) {
-          const file = pdfs[i];
-          setPdfProgress({ done: i, total: pdfs.length });
-          const formData = new FormData();
-          formData.append('file', file);
-          try {
-            const res = await fetch('/api/parse-pdf', { method: 'POST', body: formData });
-            if (!res.ok) {
-              const errBody = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-              failures.push({ name: file.name, reason: errBody.error || `HTTP ${res.status}` });
-              continue;
-            }
-            const data = await res.json();
-            if (data.transaction) {
-              const t = data.transaction;
-              // Validate we got usable data
-              if (!t.date || !t.action || t.quantity === 0) {
-                failures.push({
-                  name: file.name,
-                  reason: `Missing fields: ${!t.date ? 'date ' : ''}${!t.action ? 'action ' : ''}${t.quantity === 0 ? 'quantity' : ''}`.trim(),
-                  preview: data.textPreview,
-                });
-                continue;
-              }
-              parsedResults.push(data.transaction);
-            }
-          } catch (err) {
-            failures.push({ name: file.name, reason: err instanceof Error ? err.message : 'Unknown error' });
-          }
-        }
-        setPdfProgress({ done: pdfs.length, total: pdfs.length });
-
-        if (parsedResults.length > 0) {
+        if (pdfTxns.length > 0) {
           const headers = ['Date', 'Action', 'Symbol', 'Quantity', 'Price', 'Commission', 'Currency'];
-          const rows = parsedResults.map(r => [
+          const rows = pdfTxns.map(r => [
             r.date,
             r.action,
             r.symbol,
             r.quantity.toString(),
             r.price.toString(),
             r.commission.toString(),
-            r.currency
+            r.currency,
           ]);
 
           addFile({
             id: uuidv4(),
-            name: `Trade Confirmations Batch (${parsedResults.length} extracted)`,
+            name: `Trade Confirmations Batch (${pdfTxns.length} extracted)`,
             rawData: { headers, rows, source: 'pdf' },
-            detectedFormat: 'PDF Trade Combos',
+            detectedFormat: 'PDF Trade Confirmations',
             mapping: {
               date: 0,
               action: 1,
@@ -133,7 +104,7 @@ export default function FileImport() {
               quantity: 3,
               price: 4,
               commission: 5,
-              currency: 6
+              currency: 6,
             },
             transactions: [],
             currencyOverride: 'USD',
@@ -147,10 +118,10 @@ export default function FileImport() {
             return line;
           }).join('\n');
           const more = failures.length > 3 ? `\n…and ${failures.length - 3} more` : '';
-          setError(`${parsedResults.length}/${pdfs.length} PDFs extracted successfully.\n${failures.length} failed:\n${top}${more}`);
+          setError(`${pdfTxns.length}/${pdfs.length} PDFs extracted successfully.\n${failures.length} failed:\n${top}${more}`);
         }
 
-        if (parsedResults.length === 0 && failures.length > 0) {
+        if (pdfTxns.length === 0 && failures.length > 0) {
           setError(`Could not extract any trades. All ${pdfs.length} PDFs failed.\n${failures.slice(0, 5).map(f => `• ${f.name}: ${f.reason}`).join('\n')}`);
         }
       } catch (err) {
