@@ -24,11 +24,12 @@ GlobalWorkerOptions.workerSrc = new URL(
 // ---------------------------------------------------------------------------
 
 export interface PdfTransaction {
-  date: string;        // YYYY-MM-DD
-  action: string;      // BUY or SELL
+  date: string;            // YYYY-MM-DD (trade date)
+  settlementDate?: string; // YYYY-MM-DD (settlement date — used for FX conversion per CRA rules)
+  action: string;          // BUY or SELL
   symbol: string;
   quantity: number;
-  price: number;       // per share
+  price: number;           // per share
   commission: number;
   currency: string;
   docType: 'trade' | 'rsu' | 'espp';
@@ -146,6 +147,7 @@ function parseTradeNewer(text: string, fileName: string): PdfTransaction | null 
   const commission = feeMatch ? parseFloat(feeMatch[1].replace(/,/g, '')) : 0;
 
   let tradeDate = '';
+  let settlementDate = '';
   let quantity = 0;
   let price = 0;
 
@@ -156,6 +158,7 @@ function parseTradeNewer(text: string, fileName: string): PdfTransaction | null 
   );
   if (spacedMatch) {
     tradeDate = normalizeDate(spacedMatch[1]);
+    settlementDate = normalizeDate(spacedMatch[2]);
     quantity = parseInt(spacedMatch[3]);
     // Price might have extra digits (e.g. "63.88" or "73.791375")
     // Take just the price portion (up to 2 decimal places for display)
@@ -178,6 +181,7 @@ function parseTradeNewer(text: string, fileName: string): PdfTransaction | null 
     const concatMatch = text.match(/(\d{2}\/\d{2}\/\d{4})(\d{2}\/\d{2}\/\d{4})(\d[\d.]+)/);
     if (concatMatch && principal > 0) {
       tradeDate = normalizeDate(concatMatch[1]);
+      settlementDate = normalizeDate(concatMatch[2]);
       const concatData = concatMatch[3];
       const dotIdx = concatData.indexOf('.');
       if (dotIdx > 0) {
@@ -221,7 +225,7 @@ function parseTradeNewer(text: string, fileName: string): PdfTransaction | null 
   if (!tradeDate || quantity === 0) return null;
 
   return {
-    date: tradeDate, action, symbol, quantity,
+    date: tradeDate, settlementDate: settlementDate || undefined, action, symbol, quantity,
     price: Math.round(price * 100) / 100,
     commission, currency: 'USD', docType: 'trade',
   };
@@ -242,6 +246,7 @@ function parseTradeOlder(text: string, fileName: string): PdfTransaction | null 
   if (!rowMatch) return null;
 
   const tradeDate = normalizeDate(rowMatch[1]);
+  const settlementDate = normalizeDate(rowMatch[2]);
   const symbol = rowMatch[3].toUpperCase();
   const action = rowMatch[4].toUpperCase() === 'BUY' ? 'BUY' : 'SELL';
   const quantity = parseInt(rowMatch[5]);
@@ -254,7 +259,7 @@ function parseTradeOlder(text: string, fileName: string): PdfTransaction | null 
   if (!tradeDate || quantity <= 0 || price <= 0) return null;
 
   return {
-    date: tradeDate, action, symbol, quantity,
+    date: tradeDate, settlementDate, action, symbol, quantity,
     price: Math.round(price * 100) / 100,
     commission, currency: 'USD', docType: 'trade',
   };

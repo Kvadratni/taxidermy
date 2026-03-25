@@ -81,9 +81,10 @@ export default function FileImport() {
         );
 
         if (pdfTxns.length > 0) {
-          const headers = ['Date', 'Action', 'Symbol', 'Quantity', 'Price', 'Commission', 'Currency'];
+          const headers = ['Date', 'Settlement Date', 'Action', 'Symbol', 'Quantity', 'Price', 'Commission', 'Currency'];
           const rows = pdfTxns.map(r => [
             r.date,
+            r.settlementDate || r.date, // RSU/ESPP have no separate settlement date
             r.action,
             r.symbol,
             r.quantity.toString(),
@@ -99,12 +100,13 @@ export default function FileImport() {
             detectedFormat: 'PDF Trade Confirmations',
             mapping: {
               date: 0,
-              action: 1,
-              symbol: 2,
-              quantity: 3,
-              price: 4,
-              commission: 5,
-              currency: 6,
+              settlementDate: 1,
+              action: 2,
+              symbol: 3,
+              quantity: 4,
+              price: 5,
+              commission: 6,
+              currency: 7,
             },
             transactions: [],
             currencyOverride: 'USD',
