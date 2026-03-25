@@ -65,7 +65,8 @@ export function downloadFullExcel(
 
   // --- Sheet 1: Schedule 3 ---
   const s3Headers = [
-    'Date',
+    'Trade Date',
+    'Settlement Date',
     'Symbol',
     'Shares',
     'Year Acquired',
@@ -78,7 +79,8 @@ export function downloadFullExcel(
     'Superficial?',
   ];
   const s3Rows = dispositions.map((d) => [
-    format(d.transaction.date, 'yyyy-MM-dd'),
+    d.transaction.tradeDate ? format(d.transaction.tradeDate, 'yyyy-MM-dd') : '',
+    format(d.transaction.settlementDate, 'yyyy-MM-dd'),
     d.transaction.symbol,
     d.transaction.quantity,
     d.yearOfAcquisition,
@@ -139,7 +141,7 @@ export function downloadFullExcel(
 
   // --- Sheet 3: All Transactions ---
   const txHeaders = [
-    'Date',
+    'Trade Date',
     'Settlement Date',
     'Action',
     'Symbol',
@@ -153,11 +155,11 @@ export function downloadFullExcel(
   ];
 
   const sorted = [...transactions].sort(
-    (a, b) => a.date.getTime() - b.date.getTime()
+    (a, b) => a.settlementDate.getTime() - b.settlementDate.getTime()
   );
 
   const txRows = sorted.map((t) => [
-    format(t.date, 'yyyy-MM-dd'),
+    t.tradeDate ? format(t.tradeDate, 'yyyy-MM-dd') : '',
     format(t.settlementDate, 'yyyy-MM-dd'),
     t.action,
     t.symbol,

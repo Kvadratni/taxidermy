@@ -40,14 +40,14 @@ export default function HoldingsChart({ transactions }: { transactions: Transact
     const activeSymbol = allSymbols.includes(selectedSymbol) ? selectedSymbol : allSymbols[0];
 
     // 2. Line Chart Mode Data (All Symbols Running Balances)
-    const allDatesLine = [...new Set(transactions.map(t => formatDate(t.date, 'yyyy-MM-dd')))].sort();
+    const allDatesLine = [...new Set(transactions.map(t => formatDate(t.settlementDate, 'yyyy-MM-dd')))].sort();
     const lineChartData: any[] = [];
     const balances: Record<string, number> = {};
     for (const sym of allSymbols) balances[sym] = 0;
 
     for (const date of allDatesLine) {
       const point: any = { name: date };
-      const txnsOnDate = transactions.filter(t => formatDate(t.date, 'yyyy-MM-dd') === date);
+      const txnsOnDate = transactions.filter(t => formatDate(t.settlementDate, 'yyyy-MM-dd') === date);
       
       for (const txn of txnsOnDate) {
         if (txn.action === 'BUY') balances[txn.symbol] += txn.quantity;
@@ -64,9 +64,9 @@ export default function HoldingsChart({ transactions }: { transactions: Transact
     
     if (activeSymbol) {
       const symTxns = bySymbol.get(activeSymbol)!;
-      symTxns.sort((a, b) => a.date.getTime() - b.date.getTime());
+      symTxns.sort((a, b) => a.settlementDate.getTime() - b.settlementDate.getTime());
       
-      const allDatesArea = [...new Set(symTxns.map(t => formatDate(t.date, 'yyyy-MM-dd')))].sort();
+      const allDatesArea = [...new Set(symTxns.map(t => formatDate(t.settlementDate, 'yyyy-MM-dd')))].sort();
       
       // Tracking active lots: { id: string, initQty: number, currQty: number, buyDate: string }
       type Lot = { key: string, currQty: number, buyDate: string };
@@ -75,7 +75,7 @@ export default function HoldingsChart({ transactions }: { transactions: Transact
 
       for (const date of allDatesArea) {
         const point: any = { name: date };
-        const txnsOnDate = symTxns.filter(t => formatDate(t.date, 'yyyy-MM-dd') === date);
+        const txnsOnDate = symTxns.filter(t => formatDate(t.settlementDate, 'yyyy-MM-dd') === date);
         
         let dailyBuys = 0;
         let dailySells = 0;

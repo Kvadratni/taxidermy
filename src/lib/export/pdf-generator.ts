@@ -165,7 +165,7 @@ export async function downloadFullPdf(
   sectionTitle('Schedule 3', 'Capital Gains (or Losses) · Publicly traded shares & securities');
 
   const s3Body = dispositions.map((d) => [
-    format(d.transaction.date, 'yyyy-MM-dd'),
+    format(d.transaction.settlementDate, 'yyyy-MM-dd'),
     d.transaction.symbol,
     `${d.transaction.quantity}`,
     d.yearOfAcquisition,
@@ -295,9 +295,9 @@ export async function downloadFullPdf(
   ensureSpace(30);
   sectionTitle('All Transactions', 'Complete buy/sell history');
 
-  const sorted = [...transactions].sort((a, b) => a.date.getTime() - b.date.getTime());
+  const sorted = [...transactions].sort((a, b) => a.settlementDate.getTime() - b.settlementDate.getTime());
   const txBody = sorted.map((t) => [
-    format(t.date, 'yyyy-MM-dd'),
+    format(t.settlementDate, 'yyyy-MM-dd'),
     t.action,
     t.symbol,
     t.quantity.toString(),

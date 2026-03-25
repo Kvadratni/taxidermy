@@ -9,7 +9,7 @@ export default function TransactionsTable() {
   const [expanded, setExpanded] = useState(false);
 
   const sorted = useMemo(
-    () => [...transactions].sort((a, b) => a.date.getTime() - b.date.getTime()),
+    () => [...transactions].sort((a, b) => a.settlementDate.getTime() - b.settlementDate.getTime()),
     [transactions],
   );
 
@@ -39,11 +39,11 @@ export default function TransactionsTable() {
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: '1px solid rgba(var(--color-outline-variant-raw), 0.15)' }}>
-              {['Date', 'Action', 'Symbol', 'Quantity', 'Price', 'Currency', 'FX Rate', 'Price (CAD)', 'Commission', 'Total (CAD)'].map((h) => (
+              {['Trade Date', 'Settlement Date', 'Action', 'Symbol', 'Quantity', 'Price', 'Currency', 'FX Rate', 'Price (CAD)', 'Commission', 'Total (CAD)'].map((h) => (
                 <th
                   key={h}
                   className={`px-3 py-2.5 font-bold text-xs uppercase tracking-wider text-secondary ${
-                    ['Date', 'Action', 'Symbol', 'Currency'].includes(h) ? 'text-left' : 'text-right'
+                    ['Trade Date', 'Settlement Date', 'Action', 'Symbol', 'Currency'].includes(h) ? 'text-left' : 'text-right'
                   }`}
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
@@ -62,7 +62,10 @@ export default function TransactionsTable() {
                 }}
               >
                 <td className="px-3 py-2 text-xs text-secondary font-semibold">
-                  {format(t.date, 'yyyy-MM-dd')}
+                  {t.tradeDate ? format(t.tradeDate, 'yyyy-MM-dd') : '—'}
+                </td>
+                <td className="px-3 py-2 text-xs text-secondary font-semibold">
+                  {format(t.settlementDate, 'yyyy-MM-dd')}
                 </td>
                 <td className="px-3 py-2">
                   <span

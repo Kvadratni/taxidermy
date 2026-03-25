@@ -18,7 +18,7 @@ export default function Schedule3Report() {
   const [hideDenied, setHideDenied] = useState(false);
 
   const dispositions = useMemo(() => {
-    return allDispositions.filter((d) => d.transaction.date.getFullYear() === taxYear);
+    return allDispositions.filter((d) => d.transaction.settlementDate.getFullYear() === taxYear);
   }, [allDispositions, taxYear]);
 
   // Derived filtered results
@@ -84,10 +84,10 @@ export default function Schedule3Report() {
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: `1px solid rgba(var(--color-outline-variant-raw), 0.15)` }}>
-              {['Date', 'Description', 'Year Acq.', 'Proceeds', 'ACB', 'Outlays', 'Gain (Loss)', 'SL Denied'].map((h) => (
+              {['Trade Date', 'Settlement Date', 'Description', 'Year Acq.', 'Proceeds', 'ACB', 'Outlays', 'Gain (Loss)', 'SL Denied'].map((h) => (
                 <th
                   key={h}
-                  className={`px-4 py-3 font-bold text-xs uppercase tracking-wider text-secondary ${h === 'Date' || h === 'Description' || h === 'Year Acq.' ? 'text-left' : 'text-right'}`}
+                  className={`px-4 py-3 font-bold text-xs uppercase tracking-wider text-secondary ${['Trade Date', 'Settlement Date', 'Description', 'Year Acq.'].includes(h) ? 'text-left' : 'text-right'}`}
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
                   {h}
@@ -108,7 +108,10 @@ export default function Schedule3Report() {
               >
                 <td className="px-4 py-3 text-xs font-semibold" style={{ color: d.isSuperficialLoss ? 'var(--color-loss)' : 'var(--color-secondary)' }}>
                   {d.isSuperficialLoss && <span title="Superficial Loss" className="mr-1">⚠️</span>}
-                  {format(d.transaction.date, 'yyyy-MM-dd')}
+                  {d.transaction.tradeDate ? format(d.transaction.tradeDate, 'yyyy-MM-dd') : '—'}
+                </td>
+                <td className="px-4 py-3 text-xs font-semibold" style={{ color: d.isSuperficialLoss ? 'var(--color-loss)' : 'var(--color-secondary)' }}>
+                  {format(d.transaction.settlementDate, 'yyyy-MM-dd')}
                 </td>
                 <td className="px-4 py-3">
                   <span className="font-bold text-on-surface" style={{ fontFamily: 'var(--font-display)' }}>

@@ -14,7 +14,7 @@ export default function SuperficialLossDetails() {
       // Find the disposition this loss belongs to, to check the year
       const disp = allDispositions.find((d) => d.transaction.id === l.dispositionId);
       if (!disp) return false;
-      return disp.transaction.date.getFullYear() === taxYear;
+      return disp.transaction.settlementDate.getFullYear() === taxYear;
     });
   }, [allLosses, allDispositions, taxYear]);
 

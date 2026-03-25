@@ -156,6 +156,14 @@ export function suggestMapping(headers: string[]): Partial<ColumnMapping> {
 
   for (let i = 0; i < lowerHeaders.length; i++) {
     const h = lowerHeaders[i];
+
+    // Settlement date detection — must check before generic date
+    if (mapping.settlementDate === undefined && (h.includes('settlement') && h.includes('date'))) {
+      mapping.settlementDate = i;
+      continue; // Don't also match as trade date
+    }
+
+    // Trade date / generic date — skip if already matched as settlement
     if (!mapping.date && (h.includes('date') || h.includes('time'))) {
       mapping.date = i;
     }

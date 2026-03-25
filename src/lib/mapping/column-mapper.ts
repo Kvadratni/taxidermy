@@ -107,7 +107,7 @@ function mapGlToTransactions(
 
       transactions.push({
         id: uuidv4(),
-        date: buyDate,
+        tradeDate: buyDate,
         settlementDate: addBusinessDays(buyDate, 1),
         action: 'BUY',
         symbol: finalSymbol,
@@ -125,7 +125,7 @@ function mapGlToTransactions(
 
       transactions.push({
         id: uuidv4(),
-        date: buyDate,
+        tradeDate: buyDate,
         settlementDate: addBusinessDays(buyDate, 1),
         action: 'BUY',
         symbol: finalSymbol,
@@ -142,7 +142,7 @@ function mapGlToTransactions(
     // Synthesize a SELL at the sale date
     transactions.push({
       id: uuidv4(),
-      date: dateSold,
+      tradeDate: dateSold,
       settlementDate: addBusinessDays(dateSold, 1),
       action: 'SELL',
       symbol: finalSymbol,
@@ -224,12 +224,12 @@ function mapBenefitHistoryToTransactions(
 
       transactions.push({
         id: uuidv4(),
-        date,
+        tradeDate: date,
         settlementDate: addBusinessDays(date, 1),
         action: 'BUY',
         symbol: finalSymbol,
         quantity,
-        pricePerShare: 0, // Will be populated later from cross-reference with G&L FMV
+        pricePerShare: 0,
         pricePerShareCAD: 0,
         commission: 0,
         currency,
@@ -256,7 +256,7 @@ function mapBenefitHistoryToTransactions(
 
       transactions.push({
         id: uuidv4(),
-        date,
+        tradeDate: date,
         settlementDate: addBusinessDays(date, 1),
         action: 'BUY',
         symbol: finalSymbol,
@@ -293,17 +293,20 @@ export function mapToTransactions(
     const row = data.rows[i];
     const rowNum = i + 2; // +2 for 1-indexed + header row
 
-    // Parse date
+    // Parse dates: settlement date is primary, trade date is informational
     const dateStr = (row[mapping.date] ?? '').trim();
+    const settlementDateStr = mapping.settlementDate !== undefined
+      ? (row[mapping.settlementDate] ?? '').trim()
+      : '';
     const qtyStr = mapping.quantity !== undefined ? (row[mapping.quantity] ?? '').trim() : '';
-    
-    // Skip completely empty rows
-    if (!dateStr && !qtyStr) continue;
 
-    const date = parseDate(dateStr);
+    // Skip completely empty rows
+    if (!dateStr && !settlementDateStr && !qtyStr) continue;
+
+    const date = parseDate(dateStr || settlementDateStr);
     if (!date) {
-      if (dateStr === '') continue; // Skip blank rows instead of erroring
-      errors.push({ row: rowNum, field: 'date', value: dateStr, message: 'Invalid date format' });
+      if (!dateStr && !settlementDateStr) continue;
+      errors.push({ row: rowNum, field: 'date', value: dateStr || settlementDateStr, message: 'Invalid date format' });
       continue;
     }
 
@@ -355,7 +358,7 @@ export function mapToTransactions(
       ? (row[mapping.currency] ?? 'CAD').trim().toUpperCase()
       : 'CAD';
 
-    // Settlement date: use explicit column, or T+1 from trade date
+    // Settlement date: use explicit column if present, otherwise T+1 from trade date
     let settlementDate: Date;
     if (mapping.settlementDate !== undefined && row[mapping.settlementDate]) {
       const parsed = parseDate(row[mapping.settlementDate]);
@@ -366,7 +369,7 @@ export function mapToTransactions(
 
     transactions.push({
       id: uuidv4(),
-      date,
+      tradeDate: date,
       settlementDate,
       action,
       symbol,

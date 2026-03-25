@@ -14,7 +14,7 @@ export default function ProvinceSelector() {
   const years = useMemo(() => {
     const yearSet = new Set<number>();
     for (const d of allDispositions) {
-      yearSet.add(d.transaction.date.getFullYear());
+      yearSet.add(d.transaction.settlementDate.getFullYear());
     }
     if (yearSet.size === 0) yearSet.add(new Date().getFullYear());
     return Array.from(yearSet).sort((a, b) => b - a);

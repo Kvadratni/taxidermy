@@ -7,6 +7,7 @@ export interface RawImportData {
 }
 
 export interface ColumnMapping {
+  /** Primary date column — treated as settlement date for all calculations. */
   date: number;
   action?: number;
   symbol?: number;
@@ -15,6 +16,7 @@ export interface ColumnMapping {
   commission?: number;
   currency?: number;
   totalAmount?: number;
+  /** Explicit settlement date column (e.g. Questrade). Overrides `date` when present. */
   settlementDate?: number;
   // G&L (Gains & Losses) report mode — pre-matched lots with no action/symbol columns
   glMode?: boolean;
@@ -41,7 +43,9 @@ export interface ImportedFile {
 
 export interface Transaction {
   id: string;
-  date: Date;
+  /** Trade date (optional — informational only). */
+  tradeDate?: Date;
+  /** Settlement date — the primary date for all calculations, FX, ACB, and CRA reporting. */
   settlementDate: Date;
   action: TransactionAction;
   symbol: string;

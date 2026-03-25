@@ -13,7 +13,7 @@ export default function TaxSummary() {
   const province     = useAppStore((s) => s.province);
 
   const dispositions = useMemo(() => {
-    return allDispositions.filter((d) => d.transaction.date.getFullYear() === taxYear);
+    return allDispositions.filter((d) => d.transaction.settlementDate.getFullYear() === taxYear);
   }, [allDispositions, taxYear]);
 
   const totalGains  = dispositions.filter((d) => d.allowedGainLoss > 0).reduce((s, d) => s + d.allowedGainLoss, 0);

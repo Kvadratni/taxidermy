@@ -32,7 +32,7 @@ function applySymbolAliases(transactions: Transaction[], aliases: Record<string,
  */
 function detectTickerRenames(transactions: Transaction[]): Record<string, string> {
   const sorted = [...transactions].sort(
-    (a, b) => a.date.getTime() - b.date.getTime()
+    (a, b) => a.settlementDate.getTime() - b.settlementDate.getTime()
   );
 
   // Track first and last date each symbol appears
@@ -40,9 +40,9 @@ function detectTickerRenames(transactions: Transaction[]): Record<string, string
   for (const txn of sorted) {
     const existing = symbolRange.get(txn.symbol);
     if (!existing) {
-      symbolRange.set(txn.symbol, { first: txn.date, last: txn.date, count: 1 });
+      symbolRange.set(txn.symbol, { first: txn.settlementDate, last: txn.settlementDate, count: 1 });
     } else {
-      existing.last = txn.date;
+      existing.last = txn.settlementDate;
       existing.count++;
     }
   }
@@ -507,7 +507,7 @@ export default function ColumnMapper() {
       const glBuysByDate = new Map<string, number>();
       for (const txn of allTransactions) {
         if (txn.action === 'BUY' && txn.pricePerShareCAD > 0) {
-          const key = formatDate(txn.date, 'yyyy-MM-dd');
+          const key = formatDate(txn.settlementDate, 'yyyy-MM-dd');
           if (!fmvByDate.has(key)) {
             fmvByDate.set(key, txn.pricePerShareCAD);
           }
@@ -520,7 +520,7 @@ export default function ColumnMapper() {
         (t) => t.action === 'BUY' && t.pricePerShareCAD === 0
       );
       for (const txn of bhBuys) {
-        const key = formatDate(txn.date, 'yyyy-MM-dd');
+        const key = formatDate(txn.settlementDate, 'yyyy-MM-dd');
         let fmv = fmvByDate.get(key) || 0;
         if (fmv === 0) {
           // Look for closest earlier FMV
@@ -682,7 +682,7 @@ export default function ColumnMapper() {
               <tbody>
                 {transactions.map((txn, i) => (
                   <tr key={txn.id} style={{ borderTop: i === 0 ? 'none' : `1px solid rgba(var(--color-outline-variant-raw), 0.12)`, background: i % 2 === 0 ? 'var(--color-surface)' : 'transparent' }}>
-                    <td className="px-4 py-2 text-on-surface-variant font-medium whitespace-nowrap">{formatDate(txn.date, 'yyyy-MM-dd')}</td>
+                    <td className="px-4 py-2 text-on-surface-variant font-medium whitespace-nowrap">{formatDate(txn.settlementDate, 'yyyy-MM-dd')}</td>
                     <td className="px-4 py-2 whitespace-nowrap">
                       <span
                         className="px-2 py-0.5 rounded text-xs font-semibold"
