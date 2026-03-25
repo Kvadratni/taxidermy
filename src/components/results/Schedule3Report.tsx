@@ -155,13 +155,34 @@ export default function Schedule3Report() {
                 <td className="px-4 py-3 text-right text-on-surface">${d.outlays.toFixed(2)}</td>
 
                 <td
-                  className="px-4 py-3 text-right font-bold"
-                  style={{
-                    fontFamily: 'var(--font-display)',
-                    color: d.allowedGainLoss >= 0 ? 'var(--color-primary)' : 'var(--color-loss)',
-                  }}
+                  className="px-4 py-3 text-right"
+                  style={{ fontFamily: 'var(--font-display)' }}
                 >
-                  ${d.allowedGainLoss.toFixed(2)}
+                  {d.isSuperficialLoss ? (
+                    <div>
+                      <div className="text-xs text-outline-variant line-through mb-0.5">
+                        ${d.rawGainLoss.toFixed(2)}
+                      </div>
+                      <div
+                        className="font-bold"
+                        style={{ color: d.allowedGainLoss >= 0 ? 'var(--color-primary)' : 'var(--color-loss)' }}
+                      >
+                        ${d.allowedGainLoss.toFixed(2)}
+                      </div>
+                      <div className="text-[10px] mt-0.5 text-outline-variant">
+                        {Math.abs(d.superficialLoss - Math.abs(d.rawGainLoss)) < 0.01
+                          ? 'fully denied'
+                          : `$${Math.abs(d.rawGainLoss).toFixed(2)} loss = $${Math.abs(d.allowedGainLoss).toFixed(2)} claimable + $${d.superficialLoss.toFixed(2)} denied`}
+                      </div>
+                    </div>
+                  ) : (
+                    <span
+                      className="font-bold"
+                      style={{ color: d.allowedGainLoss >= 0 ? 'var(--color-primary)' : 'var(--color-loss)' }}
+                    >
+                      ${d.allowedGainLoss.toFixed(2)}
+                    </span>
+                  )}
                 </td>
 
                 <td className="px-4 py-3 text-right text-xs" style={{ color: 'var(--color-loss)' }}>
