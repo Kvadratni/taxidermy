@@ -29,8 +29,8 @@ export function validateTransactions(transactions: Transaction[]): ValidationIss
       issues.push({
         type: 'error',
         symbol: txn.symbol,
-        date: txn.date,
-        message: `Share balance for ${txn.symbol} goes negative (${next.toFixed(3)}) on ${format(txn.date, 'yyyy-MM-dd')}. You may be missing an acquisition file.`,
+        date: txn.settlementDate,
+        message: `Share balance for ${txn.symbol} goes negative (${next.toFixed(3)}) on ${format(txn.settlementDate, 'yyyy-MM-dd')}. You may be missing an acquisition file.`,
       });
     }
 
@@ -40,14 +40,14 @@ export function validateTransactions(transactions: Transaction[]): ValidationIss
   // 2. Duplicate detection — same date + same quantity + same symbol + same action across files
   const seen = new Map<string, Transaction>();
   for (const txn of sorted) {
-    const key = `${txn.symbol}|${format(txn.date, 'yyyy-MM-dd')}|${txn.action}|${txn.quantity}`;
+    const key = `${txn.symbol}|${format(txn.settlementDate, 'yyyy-MM-dd')}|${txn.action}|${txn.quantity}`;
     const prev = seen.get(key);
     if (prev && prev.sourceFileId !== txn.sourceFileId) {
       issues.push({
         type: 'warning',
         symbol: txn.symbol,
-        date: txn.date,
-        message: `Possible duplicate: ${txn.action} ${txn.quantity} ${txn.symbol} on ${format(txn.date, 'yyyy-MM-dd')} appears in multiple files.`,
+        date: txn.settlementDate,
+        message: `Possible duplicate: ${txn.action} ${txn.quantity} ${txn.symbol} on ${format(txn.settlementDate, 'yyyy-MM-dd')} appears in multiple files.`,
       });
     } else {
       seen.set(key, txn);
@@ -59,10 +59,10 @@ export function validateTransactions(transactions: Transaction[]): ValidationIss
   const firstSell = new Map<string, Date>();
   for (const txn of sorted) {
     if (txn.action === 'BUY' && !firstBuy.has(txn.symbol)) {
-      firstBuy.set(txn.symbol, txn.date);
+      firstBuy.set(txn.symbol, txn.settlementDate);
     }
     if (txn.action === 'SELL' && !firstSell.has(txn.symbol)) {
-      firstSell.set(txn.symbol, txn.date);
+      firstSell.set(txn.symbol, txn.settlementDate);
     }
   }
   for (const [symbol, sellDate] of firstSell) {

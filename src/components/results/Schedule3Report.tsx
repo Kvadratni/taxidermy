@@ -18,7 +18,7 @@ export default function Schedule3Report() {
   const [hideDenied, setHideDenied] = useState(false);
 
   const dispositions = useMemo(() => {
-    return allDispositions.filter((d) => d.transaction.date.getFullYear() === taxYear);
+    return allDispositions.filter((d) => d.transaction.settlementDate.getFullYear() === taxYear);
   }, [allDispositions, taxYear]);
 
   // Derived filtered results
@@ -108,7 +108,12 @@ export default function Schedule3Report() {
               >
                 <td className="px-4 py-3 text-xs font-semibold" style={{ color: d.isSuperficialLoss ? 'var(--color-loss)' : 'var(--color-secondary)' }}>
                   {d.isSuperficialLoss && <span title="Superficial Loss" className="mr-1">⚠️</span>}
-                  {format(d.transaction.date, 'yyyy-MM-dd')}
+                  {format(d.transaction.settlementDate, 'yyyy-MM-dd')}
+                  {d.transaction.tradeDate && format(d.transaction.tradeDate, 'yyyy-MM-dd') !== format(d.transaction.settlementDate, 'yyyy-MM-dd') && (
+                    <div className="text-[10px] font-normal text-outline-variant mt-0.5">
+                      Trade: {format(d.transaction.tradeDate, 'yyyy-MM-dd')}
+                    </div>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <span className="font-bold text-on-surface" style={{ fontFamily: 'var(--font-display)' }}>

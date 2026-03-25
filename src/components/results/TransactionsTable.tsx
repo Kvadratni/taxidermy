@@ -9,7 +9,7 @@ export default function TransactionsTable() {
   const [expanded, setExpanded] = useState(false);
 
   const sorted = useMemo(
-    () => [...transactions].sort((a, b) => a.date.getTime() - b.date.getTime()),
+    () => [...transactions].sort((a, b) => a.settlementDate.getTime() - b.settlementDate.getTime()),
     [transactions],
   );
 
@@ -62,7 +62,7 @@ export default function TransactionsTable() {
                 }}
               >
                 <td className="px-3 py-2 text-xs text-secondary font-semibold">
-                  {format(t.date, 'yyyy-MM-dd')}
+                  {format(t.settlementDate, 'yyyy-MM-dd')}
                 </td>
                 <td className="px-3 py-2">
                   <span

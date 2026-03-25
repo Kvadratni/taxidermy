@@ -41,8 +41,8 @@ export interface ImportedFile {
 
 export interface Transaction {
   id: string;
-  date: Date;
   settlementDate: Date;
+  tradeDate?: Date;
   action: TransactionAction;
   symbol: string;
   quantity: number;

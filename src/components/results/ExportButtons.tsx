@@ -19,7 +19,7 @@ export default function ExportButtons() {
   const [showCsvModal, setShowCsvModal] = useState(false);
 
   const dispositions = useMemo(() => {
-    return allDispositions.filter((d) => d.transaction.date.getFullYear() === taxYear);
+    return allDispositions.filter((d) => d.transaction.settlementDate.getFullYear() === taxYear);
   }, [allDispositions, taxYear]);
 
   const net = dispositions.reduce((s, d) => s + d.allowedGainLoss, 0);
