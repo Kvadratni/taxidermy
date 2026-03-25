@@ -2,6 +2,7 @@
 
 import { useAppStore } from '@/store/useAppStore';
 import { useTheme } from '@/components/providers/ThemeProvider';
+import Image from 'next/image';
 import { RotateCcw, Sun, Moon, Coffee } from 'lucide-react';
 
 export default function Header() {
@@ -20,7 +21,7 @@ export default function Header() {
     >
       <div className="mx-auto max-w-6xl flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Taxidermy logo" className="h-10 w-10" />
+          <Image src="/logo.png" alt="Taxidermy logo" width={40} height={40} className="h-10 w-10" />
           <div>
           <h1
             className="text-xl font-extrabold tracking-tight leading-none text-primary"
