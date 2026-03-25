@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { PROVINCES } from '@/lib/constants/provinces';
 
@@ -8,6 +9,16 @@ export default function ProvinceSelector() {
   const setProvince = useAppStore((s) => s.setProvince);
   const taxYear = useAppStore((s) => s.taxYear);
   const setTaxYear = useAppStore((s) => s.setTaxYear);
+  const allDispositions = useAppStore((s) => s.dispositions);
+
+  const years = useMemo(() => {
+    const yearSet = new Set<number>();
+    for (const d of allDispositions) {
+      yearSet.add(d.transaction.date.getFullYear());
+    }
+    if (yearSet.size === 0) yearSet.add(new Date().getFullYear());
+    return Array.from(yearSet).sort((a, b) => b - a);
+  }, [allDispositions]);
 
   const selectStyle = {
     background: 'var(--color-surface)',
@@ -51,7 +62,7 @@ export default function ProvinceSelector() {
           className="rounded-lg px-3 py-1.5 text-xs outline-none transition-all"
           style={selectStyle}
         >
-          {[2025, 2024, 2023].map((y) => (
+          {years.map((y) => (
             <option key={y} value={y}>
               {y}
             </option>
