@@ -91,11 +91,7 @@ export default function ExportButtons() {
                   downloadCsv(dispositions);
                   setShowCsvModal(false);
                 }}
-                className="px-4 py-2 text-sm font-bold rounded-lg transition-colors"
-                style={{
-                  background: 'var(--color-primary)',
-                  color: 'var(--color-on-primary)',
-                }}
+                className="btn-primary px-4 py-2 text-sm font-bold rounded-lg transition-colors text-white"
               >
                 Download CSV
               </button>
