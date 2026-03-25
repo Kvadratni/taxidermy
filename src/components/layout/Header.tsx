@@ -2,7 +2,7 @@
 
 import { useAppStore } from '@/store/useAppStore';
 import { useTheme } from '@/components/providers/ThemeProvider';
-import { RotateCcw, Sun, Moon } from 'lucide-react';
+import { RotateCcw, Sun, Moon, Coffee } from 'lucide-react';
 
 export default function Header() {
   const reset = useAppStore((s) => s.reset);
@@ -38,6 +38,16 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-1">
+          <a
+            href="https://ko-fi.com/maxnovich"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors"
+            style={{ background: 'rgba(var(--color-primary-fixed-raw), 0.1)', color: 'var(--color-primary)' }}
+          >
+            <Coffee size={12} />
+            Buy me a coffee
+          </a>
           <button
             onClick={toggleTheme}
             className="flex items-center justify-center w-8 h-8 rounded text-on-surface-variant hover:text-primary transition-colors"
