@@ -139,6 +139,10 @@ export interface AppState {
   updateFileCurrency: (fileId: string, currency: string) => void;
   updateFileTransactions: (fileId: string, transactions: Transaction[]) => void;
 
+  // Symbol aliases (ticker renames, e.g. SQ → XYZ)
+  symbolAliases: Record<string, string>;
+  setSymbolAliases: (aliases: Record<string, string>) => void;
+
   // Merged transactions (after all files are mapped and merged)
   transactions: Transaction[];
   setTransactions: (txns: Transaction[]) => void;

@@ -11,6 +11,68 @@ import { validateTransactions } from '@/lib/engine/validate-transactions';
 import { format as formatDate, min as dateMin, max as dateMax } from 'date-fns';
 import { Loader2, AlertTriangle, CheckCircle2, FileSpreadsheet, ShieldAlert } from 'lucide-react';
 import HoldingsChart from '../results/HoldingsChart';
+import { ArrowRight } from 'lucide-react';
+
+/**
+ * Apply symbol aliases to transactions in-place (mutates).
+ * Maps old ticker → new ticker for renamed stocks.
+ */
+function applySymbolAliases(transactions: Transaction[], aliases: Record<string, string>) {
+  for (const txn of transactions) {
+    if (aliases[txn.symbol]) {
+      txn.symbol = aliases[txn.symbol];
+    }
+  }
+}
+
+/**
+ * Auto-detect ticker renames by looking for symbols that stop appearing
+ * while a new symbol starts appearing around the same time.
+ * Returns a map of oldSymbol → newSymbol.
+ */
+function detectTickerRenames(transactions: Transaction[]): Record<string, string> {
+  const sorted = [...transactions].sort(
+    (a, b) => a.date.getTime() - b.date.getTime()
+  );
+
+  // Track first and last date each symbol appears
+  const symbolRange = new Map<string, { first: Date; last: Date; count: number }>();
+  for (const txn of sorted) {
+    const existing = symbolRange.get(txn.symbol);
+    if (!existing) {
+      symbolRange.set(txn.symbol, { first: txn.date, last: txn.date, count: 1 });
+    } else {
+      existing.last = txn.date;
+      existing.count++;
+    }
+  }
+
+  const aliases: Record<string, string> = {};
+  const symbols = [...symbolRange.entries()];
+
+  // For each pair of symbols, check if one "ends" and the other "begins" within ~90 days
+  for (let i = 0; i < symbols.length; i++) {
+    for (let j = i + 1; j < symbols.length; j++) {
+      const [symA, rangeA] = symbols[i];
+      const [symB, rangeB] = symbols[j];
+
+      const gapAB = rangeB.first.getTime() - rangeA.last.getTime();
+      const gapBA = rangeA.first.getTime() - rangeB.last.getTime();
+      const ninetyDays = 90 * 24 * 60 * 60 * 1000;
+
+      // A ends before B starts (A is old ticker, B is new)
+      if (gapAB > 0 && gapAB < ninetyDays && rangeA.count >= 3 && rangeB.count >= 3) {
+        aliases[symA] = symB;
+      }
+      // B ends before A starts (B is old ticker, A is new)
+      else if (gapBA > 0 && gapBA < ninetyDays && rangeA.count >= 3 && rangeB.count >= 3) {
+        aliases[symB] = symA;
+      }
+    }
+  }
+
+  return aliases;
+}
 
 const FIELD_OPTIONS = [
   { value: '', label: '-- Ignore --' },
@@ -260,6 +322,10 @@ export default function ColumnMapper() {
   const setTransactions = useAppStore((s) => s.setTransactions);
   const setResults = useAppStore((s) => s.setResults);
   const setStep = useAppStore((s) => s.setStep);
+  const symbolAliases = useAppStore((s) => s.symbolAliases);
+  const setSymbolAliases = useAppStore((s) => s.setSymbolAliases);
+
+  const [suggestedAliases, setSuggestedAliases] = useState<Record<string, string>>({});
 
   const [fileMappingState, setFileMappingState] = useState<
     Map<string, { assignments: Record<number, string>; isGl: boolean; currency: string }>
@@ -389,6 +455,18 @@ export default function ColumnMapper() {
         return;
       }
 
+      // ── Auto-detect ticker renames ────────────────────────
+      const detected = detectTickerRenames(allTransactions);
+      if (Object.keys(detected).length > 0) {
+        setSuggestedAliases(detected);
+        // Auto-apply detected renames
+        const merged = { ...symbolAliases, ...detected };
+        setSymbolAliases(merged);
+        applySymbolAliases(allTransactions, merged);
+      } else if (Object.keys(symbolAliases).length > 0) {
+        applySymbolAliases(allTransactions, symbolAliases);
+      }
+
       // ── FX conversion ────────────────────────────────────
       const foreignTxns = allTransactions.filter((t) => t.currency !== 'CAD');
       if (foreignTxns.length > 0) {
@@ -493,12 +571,16 @@ export default function ColumnMapper() {
 
   const handleCalculateGains = useCallback(() => {
     try {
+      // Re-apply aliases in case user changed them on the review page
+      if (Object.keys(symbolAliases).length > 0) {
+        applySymbolAliases(transactions, symbolAliases);
+      }
       const result = calculateGains(transactions);
       setResults(result.dispositions, result.superficialLosses, result.acbSnapshots);
     } catch (err) {
       alert('Failed to calculate gains: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
-  }, [transactions, setResults]);
+  }, [transactions, symbolAliases, setResults]);
 
   if (importedFiles.length === 0) return null;
 
@@ -530,6 +612,41 @@ export default function ColumnMapper() {
             <p className="text-xs mt-4 opacity-80" style={{ color: 'var(--color-loss)' }}>
               You can proceed anyway, but double-check your uploaded files if you see a negative balance warning.
             </p>
+          </div>
+        )}
+
+        {/* Symbol aliases (ticker renames) */}
+        {(Object.keys(symbolAliases).length > 0 || Object.keys(suggestedAliases).length > 0) && (
+          <div className="mb-6 rounded-lg p-5" style={{ background: 'rgba(var(--color-primary-fixed-raw), 0.06)', border: '1px solid rgba(var(--color-primary-fixed-raw), 0.2)' }}>
+            <h3 className="text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2 text-primary" style={{ fontFamily: 'var(--font-display)' }}>
+              <ArrowRight size={16} />
+              Ticker Renames Detected
+            </h3>
+            <p className="text-xs text-secondary mb-3">
+              These symbols appear to be the same stock with a renamed ticker. Transactions will be merged under the new symbol for ACB calculation.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(symbolAliases).map(([oldSym, newSym]) => (
+                <div key={oldSym} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium" style={{ background: 'var(--color-surface)', border: '1px solid rgba(var(--color-outline-variant-raw), 0.3)' }}>
+                  <span className="text-on-surface-variant">{oldSym}</span>
+                  <ArrowRight size={14} className="text-primary" />
+                  <span className="text-on-surface font-semibold">{newSym}</span>
+                  <button
+                    onClick={() => {
+                      const next = { ...symbolAliases };
+                      delete next[oldSym];
+                      setSymbolAliases(next);
+                      // Re-process to undo the alias
+                      setStep('mapping');
+                    }}
+                    className="ml-1 text-xs text-secondary hover:text-on-surface transition-colors"
+                    title="Remove this alias"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

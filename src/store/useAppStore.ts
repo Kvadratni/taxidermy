@@ -44,6 +44,10 @@ export const useAppStore = create<AppState>((set) => ({
       ),
     })),
 
+  // Symbol aliases
+  symbolAliases: {},
+  setSymbolAliases: (aliases: Record<string, string>) => set({ symbolAliases: aliases }),
+
   // Merged transactions
   transactions: [],
   setTransactions: (txns: Transaction[]) => set({ transactions: txns }),
@@ -75,6 +79,7 @@ export const useAppStore = create<AppState>((set) => ({
     set({
       currentStep: 'import',
       importedFiles: [],
+      symbolAliases: {},
       transactions: [],
       dispositions: [],
       superficialLosses: [],
