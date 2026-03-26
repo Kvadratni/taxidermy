@@ -448,6 +448,24 @@ export default function ColumnMapper() {
         allErrors.push(...mapErrors.map((e) => ({ ...e, message: `[${file.name}] ${e.message}` })));
       }
 
+      // ── Deduplicate transactions (same tx may appear in multiple PDFs) ──
+      {
+        const seen = new Set<string>();
+        allTransactions = allTransactions.filter((t) => {
+          const key = [
+            t.tradeDate?.toISOString().slice(0, 10) ?? '',
+            t.settlementDate.toISOString().slice(0, 10),
+            t.action,
+            t.symbol,
+            t.quantity,
+            Math.round(t.pricePerShare * 100),
+          ].join('|');
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      }
+
       setErrors(allErrors);
 
       if (allErrors.length > 0 || allTransactions.length === 0) {

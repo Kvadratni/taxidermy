@@ -107,7 +107,7 @@ function mapGlToTransactions(
 
       transactions.push({
         id: uuidv4(),
-        date: buyDate,
+        tradeDate: buyDate,
         settlementDate: addBusinessDays(buyDate, 1),
         action: 'BUY',
         symbol: finalSymbol,
@@ -125,7 +125,7 @@ function mapGlToTransactions(
 
       transactions.push({
         id: uuidv4(),
-        date: buyDate,
+        tradeDate: buyDate,
         settlementDate: addBusinessDays(buyDate, 1),
         action: 'BUY',
         symbol: finalSymbol,
@@ -142,7 +142,7 @@ function mapGlToTransactions(
     // Synthesize a SELL at the sale date
     transactions.push({
       id: uuidv4(),
-      date: dateSold,
+      tradeDate: dateSold,
       settlementDate: addBusinessDays(dateSold, 1),
       action: 'SELL',
       symbol: finalSymbol,
@@ -224,7 +224,7 @@ function mapBenefitHistoryToTransactions(
 
       transactions.push({
         id: uuidv4(),
-        date,
+        tradeDate: date,
         settlementDate: addBusinessDays(date, 1),
         action: 'BUY',
         symbol: finalSymbol,
@@ -256,7 +256,7 @@ function mapBenefitHistoryToTransactions(
 
       transactions.push({
         id: uuidv4(),
-        date,
+        tradeDate: date,
         settlementDate: addBusinessDays(date, 1),
         action: 'BUY',
         symbol: finalSymbol,
@@ -366,7 +366,7 @@ export function mapToTransactions(
 
     transactions.push({
       id: uuidv4(),
-      date,
+      tradeDate: date,
       settlementDate,
       action,
       symbol,
