@@ -8,6 +8,7 @@ import { detectFormat } from '@/lib/mapping/auto-detect';
 import { FileSpreadsheet, X, CheckCircle2, Plus, Loader2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { parsePdfBatch } from '@/lib/import/pdf-parser';
+import { isAcbFormat, normalizeAcbData } from '@/lib/import/acb-normalizer';
 
 export default function FileImport() {
   const importedFiles = useAppStore((s) => s.importedFiles);
@@ -33,6 +34,11 @@ export default function FileImport() {
         return;
       }
 
+      // Normalize ACB.ca exports (have preamble rows before transaction data)
+      if (isAcbFormat(rawData)) {
+        rawData = normalizeAcbData(rawData);
+      }
+
       const detection = detectFormat(rawData.headers);
 
       addFile({
@@ -42,7 +48,7 @@ export default function FileImport() {
         detectedFormat: detection?.format ?? null,
         mapping: detection?.mapping ?? null,
         transactions: [],
-        currencyOverride: 'CAD',
+        currencyOverride: detection?.format === 'AdjustedCostBase.ca' ? 'USD' : 'CAD',
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to parse file');

@@ -9,6 +9,21 @@ export interface BrokerageFormat {
 
 export const BROKERAGE_FORMATS: BrokerageFormat[] = [
   {
+    name: 'AdjustedCostBase.ca',
+    headerSignature: ['Trade Date', 'Settlement Date', 'Action', 'Symbol', 'Quantity', 'Price', 'Currency', 'Total Amount'],
+    mapping: {
+      date: -1,
+      settlementDate: -1,
+      action: -1,
+      symbol: -1,
+      quantity: -1,
+      price: -1,
+      commission: -1,
+      currency: -1,
+      totalAmount: -1,
+    },
+  },
+  {
     name: 'G&L Report',
     headerSignature: ['Date Sold', 'Total Proceeds', 'Adjusted Cost Basis', 'Quantity'],
     mapping: {
