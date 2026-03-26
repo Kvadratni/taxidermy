@@ -42,6 +42,32 @@ function buildMappingForFormat(
   headers: string[]
 ): ColumnMapping | null {
   switch (formatName) {
+    case 'AdjustedCostBase.ca': {
+      const date = headerIndex(headers, 'Trade Date');
+      const settlement = headerIndex(headers, 'Settlement Date');
+      const action = headerIndex(headers, 'Action');
+      const symbol = headerIndex(headers, 'Symbol');
+      const quantity = headerIndex(headers, 'Quantity');
+      const price = headerIndex(headers, 'Price');
+      const commission = headerIndex(headers, 'Commission');
+      const currency = headerIndex(headers, 'Currency');
+      const totalAmount = headerIndex(headers, 'Total Amount');
+
+      if (date < 0 || action < 0 || symbol < 0 || quantity < 0) return null;
+
+      return {
+        date,
+        action,
+        symbol,
+        quantity,
+        price: price >= 0 ? price : undefined,
+        commission: commission >= 0 ? commission : undefined,
+        currency: currency >= 0 ? currency : undefined,
+        settlementDate: settlement >= 0 ? settlement : undefined,
+        totalAmount: totalAmount >= 0 ? totalAmount : undefined,
+      };
+    }
+
     case 'G&L Report': {
       const dateSold = headerIndex(headers, 'Date Sold');
       const totalProceeds = headerIndex(headers, 'Total Proceeds');
