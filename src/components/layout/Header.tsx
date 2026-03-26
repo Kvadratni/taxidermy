@@ -2,7 +2,7 @@
 
 import { useAppStore } from '@/store/useAppStore';
 import { useTheme } from '@/components/providers/ThemeProvider';
-import { RotateCcw, Sun, Moon, Coffee } from 'lucide-react';
+import { RotateCcw, Sun, Moon, Coffee, BookOpen } from 'lucide-react';
 
 function GitHubIcon({ size = 14 }: { size?: number }) {
   return (
@@ -47,6 +47,17 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-1">
+          <a
+            href="#how-it-works"
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-on-surface-variant hover:text-primary transition-colors rounded"
+          >
+            <BookOpen size={12} />
+            How it Works
+          </a>
           <a
             href="https://ko-fi.com/maxnovich"
             target="_blank"
