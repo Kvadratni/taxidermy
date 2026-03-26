@@ -79,9 +79,12 @@ export default function MathGuide() {
               one US dollar equals $1.44 Canadian.
             </p>
             <p>
-              <strong>Which BoC rate?</strong> The daily closing rate (post-March 2017).
-              Before that, the noon rate. Taxidermy uses the rate embedded in your
-              brokerage statements, which should match the BoC rate for that date.
+              <strong>Where does Taxidermy get the rate?</strong> Taxidermy automatically
+              fetches historical rates from the Bank of Canada API for each
+              transaction&apos;s settlement date — it does not use any FX rate from your
+              brokerage file. If the API is unavailable, it falls back to previously
+              cached rates. The BoC series returns the daily closing rate (or the noon
+              rate for dates before March 2017).
             </p>
           </Section>
 
@@ -115,8 +118,11 @@ export default function MathGuide() {
               <li>Calculating the 30-day superficial loss window</li>
             </ul>
             <p>
-              Taxidermy extracts both dates from your brokerage statements and uses
-              the settlement date for all tax calculations.
+              If your brokerage data includes a separate settlement date column,
+              Taxidermy will use it. If only a single date column is present, that
+              date is treated as the settlement date — Taxidermy does not
+              automatically add business days. Check your brokerage export to confirm
+              which date it provides.
             </p>
           </Section>
 
@@ -152,9 +158,9 @@ export default function MathGuide() {
                 across many transactions is within acceptable tolerance.
               </li>
               <li>
-                <strong>Rate source differences:</strong> Taxidermy uses the FX rate from
-                your brokerage statement. Other tools may use a manually-entered or
-                differently-sourced rate.
+                <strong>Rate source differences:</strong> Taxidermy fetches rates
+                directly from the Bank of Canada API. Other tools may use a
+                manually-entered rate or a rate from a different source.
               </li>
               <li>
                 <strong>Intermediate rounding:</strong> The CRA has no prescribed decimal
