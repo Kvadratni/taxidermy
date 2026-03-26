@@ -6,6 +6,7 @@ import Stepper from '@/components/ui/Stepper';
 import ImportMethodTabs from '@/components/import/ImportMethodTabs';
 import ColumnMapper from '@/components/mapping/ColumnMapper';
 import ResultsView from '@/components/results/ResultsView';
+import MathGuide from '@/components/layout/MathGuide';
 import { useAppStore } from '@/store/useAppStore';
 
 export default function Home() {
@@ -38,6 +39,10 @@ export default function Home() {
           </>
         )}
       </main>
+
+      <footer className="mx-auto w-full max-w-6xl px-6">
+        <MathGuide />
+      </footer>
     </div>
   );
 }

@@ -4,14 +4,30 @@ import { useAppStore } from '@/store/useAppStore';
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
 
+type SortKey = 'settlementDate' | 'tradeDate';
+type SortDir = 'asc' | 'desc';
+
 export default function TransactionsTable() {
   const transactions = useAppStore((s) => s.transactions);
   const [expanded, setExpanded] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>('settlementDate');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
 
-  const sorted = useMemo(
-    () => [...transactions].sort((a, b) => a.settlementDate.getTime() - b.settlementDate.getTime()),
-    [transactions],
-  );
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  };
+
+  const sorted = useMemo(() => {
+    const mult = sortDir === 'asc' ? 1 : -1;
+    return [...transactions].sort((a, b) => {
+      const aRaw = sortKey === 'tradeDate' ? (a.tradeDate ?? a.settlementDate) : a.settlementDate;
+      const bRaw = sortKey === 'tradeDate' ? (b.tradeDate ?? b.settlementDate) : b.settlementDate;
+      const aTime = aRaw instanceof Date ? aRaw.getTime() : new Date(aRaw).getTime();
+      const bTime = bRaw instanceof Date ? bRaw.getTime() : new Date(bRaw).getTime();
+      return mult * (aTime - bTime);
+    });
+  }, [transactions, sortKey, sortDir]);
 
   if (sorted.length === 0) return null;
 
@@ -39,11 +55,24 @@ export default function TransactionsTable() {
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: '1px solid rgba(var(--color-outline-variant-raw), 0.15)' }}>
-              {['Trade Date', 'Settlement Date', 'Action', 'Symbol', 'Quantity', 'Price', 'Currency', 'FX Rate', 'Price (CAD)', 'Commission', 'Total (CAD)'].map((h) => (
+              {([
+                { label: 'Trade Date', key: 'tradeDate' as SortKey },
+                { label: 'Settlement Date', key: 'settlementDate' as SortKey },
+              ]).map(({ label, key }) => (
+                <th
+                  key={label}
+                  className="px-3 py-2.5 font-bold text-xs uppercase tracking-wider text-left cursor-pointer select-none hover:text-primary transition-colors"
+                  style={{ fontFamily: 'var(--font-display)', color: sortKey === key ? 'var(--color-primary)' : undefined, minWidth: '6.5rem' }}
+                  onClick={() => toggleSort(key)}
+                >
+                  {label}{' '}{sortKey === key && <span>{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                </th>
+              ))}
+              {['Action', 'Symbol', 'Quantity', 'Price', 'Currency', 'FX Rate', 'Price (CAD)', 'Commission', 'Total (CAD)'].map((h) => (
                 <th
                   key={h}
                   className={`px-3 py-2.5 font-bold text-xs uppercase tracking-wider text-secondary ${
-                    ['Trade Date', 'Settlement Date', 'Action', 'Symbol', 'Currency'].includes(h) ? 'text-left' : 'text-right'
+                    ['Action', 'Symbol', 'Currency'].includes(h) ? 'text-left' : 'text-right'
                   }`}
                   style={{ fontFamily: 'var(--font-display)' }}
                 >

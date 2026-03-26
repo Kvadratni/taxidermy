@@ -12,21 +12,39 @@ function FxAmount({ original, currency, fxRate }: { original: number; currency: 
   );
 }
 
+type SortKey = 'settlementDate' | 'tradeDate';
+type SortDir = 'asc' | 'desc';
+
 export default function Schedule3Report() {
   const allDispositions = useAppStore((s) => s.dispositions);
   const taxYear = useAppStore((s) => s.taxYear);
   const [hideDenied, setHideDenied] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>('settlementDate');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  };
 
   const dispositions = useMemo(() => {
     return allDispositions.filter((d) => d.transaction.settlementDate.getFullYear() === taxYear);
   }, [allDispositions, taxYear]);
 
-  // Derived filtered results
+  // Derived filtered + sorted results
   const visibleDispositions = useMemo(() => {
-    if (!hideDenied) return dispositions;
-    // Hide transactions where 100% of the loss was denied (allowed is 0)
-    return dispositions.filter(d => !(d.isSuperficialLoss && Math.abs(d.allowedGainLoss) < 0.01 && d.rawGainLoss < 0));
-  }, [dispositions, hideDenied]);
+    let result = hideDenied
+      ? dispositions.filter(d => !(d.isSuperficialLoss && Math.abs(d.allowedGainLoss) < 0.01 && d.rawGainLoss < 0))
+      : dispositions;
+    const mult = sortDir === 'asc' ? 1 : -1;
+    return [...result].sort((a, b) => {
+      const aRaw = sortKey === 'tradeDate' ? (a.transaction.tradeDate ?? a.transaction.settlementDate) : a.transaction.settlementDate;
+      const bRaw = sortKey === 'tradeDate' ? (b.transaction.tradeDate ?? b.transaction.settlementDate) : b.transaction.settlementDate;
+      const aTime = aRaw instanceof Date ? aRaw.getTime() : new Date(aRaw).getTime();
+      const bTime = bRaw instanceof Date ? bRaw.getTime() : new Date(bRaw).getTime();
+      return mult * (aTime - bTime);
+    });
+  }, [dispositions, hideDenied, sortKey, sortDir]);
 
   if (dispositions.length === 0) {
     return (
@@ -84,11 +102,24 @@ export default function Schedule3Report() {
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: `1px solid rgba(var(--color-outline-variant-raw), 0.15)` }}>
-              {['Trade Date', 'Settlement Date', 'Description', 'Year Acq.', 'Proceeds', 'ACB', 'Outlays', 'Gain (Loss)', 'SL Denied'].map((h) => (
+              {([
+                { label: 'Trade Date', key: 'tradeDate' as SortKey },
+                { label: 'Settlement Date', key: 'settlementDate' as SortKey },
+              ]).map(({ label, key }) => (
+                <th
+                  key={label}
+                  className="px-4 py-3 font-bold text-xs uppercase tracking-wider text-left cursor-pointer select-none hover:text-primary transition-colors"
+                  style={{ fontFamily: 'var(--font-display)', color: sortKey === key ? 'var(--color-primary)' : undefined, minWidth: '6.5rem' }}
+                  onClick={() => toggleSort(key)}
+                >
+                  {label}{' '}{sortKey === key && <span>{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                </th>
+              ))}
+              {['Description', 'Year Acq.', 'Proceeds', 'ACB', 'Outlays', 'Gain (Loss)', 'SL Denied'].map((h) => (
                 <th
                   key={h}
-                  className={`px-4 py-3 font-bold text-xs uppercase tracking-wider text-secondary whitespace-nowrap ${['Trade Date', 'Settlement Date', 'Description', 'Year Acq.'].includes(h) ? 'text-left' : 'text-right'}`}
-                  style={{ fontFamily: 'var(--font-display)', ...((h === 'Trade Date' || h === 'Settlement Date') ? { minWidth: '6.5rem' } : {}) }}
+                  className={`px-4 py-3 font-bold text-xs uppercase tracking-wider text-secondary ${h === 'Description' || h === 'Year Acq.' ? 'text-left' : 'text-right'}`}
+                  style={{ fontFamily: 'var(--font-display)' }}
                 >
                   {h}
                 </th>
@@ -197,7 +228,7 @@ export default function Schedule3Report() {
           <tfoot>
             <tr style={{ borderTop: `1px solid rgba(var(--color-outline-variant-raw), 0.4)` }}>
               <td
-                colSpan={3}
+                colSpan={4}
                 className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-secondary"
                 style={{ fontFamily: 'var(--font-display)' }}
               >

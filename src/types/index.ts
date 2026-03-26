@@ -43,10 +43,10 @@ export interface ImportedFile {
 
 export interface Transaction {
   id: string;
-  /** Trade date (optional — informational only). */
-  tradeDate?: Date;
   /** Settlement date — the primary date for all calculations, FX, ACB, and CRA reporting. */
   settlementDate: Date;
+  /** Trade date (optional — informational only). */
+  tradeDate?: Date;
   action: TransactionAction;
   symbol: string;
   quantity: number;

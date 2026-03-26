@@ -103,6 +103,7 @@ export function downloadFullExcel(
     '',
     '',
     '',
+    '',
     round2(dispositions.reduce((s, d) => s + d.proceeds, 0)),
     round2(dispositions.reduce((s, d) => s + d.acbOfSharesSold, 0)),
     round2(dispositions.reduce((s, d) => s + d.outlays, 0)),
@@ -141,8 +142,8 @@ export function downloadFullExcel(
 
   // --- Sheet 3: All Transactions ---
   const txHeaders = [
-    'Trade Date',
     'Settlement Date',
+    'Trade Date',
     'Action',
     'Symbol',
     'Quantity',
@@ -159,8 +160,8 @@ export function downloadFullExcel(
   );
 
   const txRows = sorted.map((t) => [
-    t.tradeDate ? format(t.tradeDate, 'yyyy-MM-dd') : '',
     format(t.settlementDate, 'yyyy-MM-dd'),
+    t.tradeDate ? format(t.tradeDate, 'yyyy-MM-dd') : format(t.settlementDate, 'yyyy-MM-dd'),
     t.action,
     t.symbol,
     round6(t.quantity),
