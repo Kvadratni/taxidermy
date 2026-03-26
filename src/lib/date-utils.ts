@@ -22,7 +22,8 @@ MONTHS_SHORT.forEach((m, i) => { MONTH_LOOKUP[m.toLowerCase()] = i; });
  * Format a Date to a string.
  * Supported tokens: yyyy, MMMM, MMM, MM, dd, d
  */
-export function formatDate(date: Date, pattern: string): string {
+export function formatDate(date: Date | string, pattern: string): string {
+  if (typeof date === 'string') date = new Date(date);
   const y = date.getFullYear();
   const M = date.getMonth();
   const d = date.getDate();
@@ -106,19 +107,21 @@ export function parseDate(value: string, pattern: string, _ref?: Date): Date {
 const DAY_MS = 86_400_000;
 
 /** Add (or subtract if negative) calendar days. */
-export function addDays(date: Date, days: number): Date {
+export function addDays(date: Date | string, days: number): Date {
+  if (typeof date === 'string') date = new Date(date);
   const result = new Date(date.getTime());
   result.setDate(result.getDate() + days);
   return result;
 }
 
 /** Subtract calendar days. */
-export function subDays(date: Date, days: number): Date {
+export function subDays(date: Date | string, days: number): Date {
   return addDays(date, -days);
 }
 
 /** Add n business days (skipping Saturday and Sunday). */
-export function addBusinessDays(date: Date, days: number): Date {
+export function addBusinessDays(date: Date | string, days: number): Date {
+  if (typeof date === 'string') date = new Date(date);
   let remaining = days;
   const result = new Date(date.getTime());
   const direction = days >= 0 ? 1 : -1;
@@ -138,11 +141,14 @@ export function addBusinessDays(date: Date, days: number): Date {
 
 /** Check if a date falls within [start, end] inclusive. */
 export function isWithinInterval(
-  date: Date,
-  interval: { start: Date; end: Date },
+  date: Date | string,
+  interval: { start: Date | string; end: Date | string },
 ): boolean {
+  if (typeof date === 'string') date = new Date(date);
   const t = date.getTime();
-  return t >= interval.start.getTime() && t <= interval.end.getTime();
+  const start = typeof interval.start === 'string' ? new Date(interval.start) : interval.start;
+  const end = typeof interval.end === 'string' ? new Date(interval.end) : interval.end;
+  return t >= start.getTime() && t <= end.getTime();
 }
 
 /** Return the earliest date from an array. */
