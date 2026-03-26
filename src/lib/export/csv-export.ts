@@ -55,6 +55,102 @@ export function downloadCsv(dispositions: DispositionResult[], filename?: string
 // Full Excel workbook: Schedule 3 + Securities + All Transactions
 // ---------------------------------------------------------------------------
 
+export function downloadAllYearsExcel(
+  allDispositions: DispositionResult[],
+  transactions: Transaction[],
+  acbSnapshots: Map<string, AcbRecord>,
+): void {
+  const wb = XLSX.utils.book_new();
+
+  // Collect all years
+  const years = [...new Set(allDispositions.map(d => d.transaction.settlementDate.getFullYear()))].sort();
+
+  for (const year of years) {
+    const dispositions = allDispositions.filter(d => d.transaction.settlementDate.getFullYear() === year);
+    const sheet = buildSchedule3Sheet(dispositions);
+    XLSX.utils.book_append_sheet(wb, sheet, `Schedule 3 - ${year}`);
+  }
+
+  // Securities sheet
+  const secHeaders = ['Symbol', 'Shares Held', 'Total ACB (CAD)', 'ACB/Share (CAD)'];
+  const secRows: (string | number)[][] = [];
+  const symbols = [...acbSnapshots.keys()].sort();
+  for (const sym of symbols) {
+    const rec = acbSnapshots.get(sym)!;
+    if (rec.totalShares > 0 || rec.totalAcb > 0) {
+      secRows.push([rec.symbol, round6(rec.totalShares), round2(rec.totalAcb), round2(rec.acbPerShare)]);
+    }
+  }
+  if (secRows.length === 0) secRows.push(['(no holdings remaining)', '', '', '']);
+  const secSheet = XLSX.utils.aoa_to_sheet([secHeaders, ...secRows]);
+  setColWidths(secSheet, secHeaders.length);
+  XLSX.utils.book_append_sheet(wb, secSheet, 'Securities');
+
+  // All Transactions sheet
+  const txSheet = buildTransactionsSheet(transactions);
+  XLSX.utils.book_append_sheet(wb, txSheet, 'All Transactions');
+
+  const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  const blob = new Blob([buf], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `taxidermy-all-years-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function buildSchedule3Sheet(dispositions: DispositionResult[]): XLSX.WorkSheet {
+  const s3Headers = [
+    'Trade Date', 'Settlement Date', 'Symbol', 'Shares', 'Year Acquired',
+    'Proceeds (CAD)', 'ACB (CAD)', 'Outlays (CAD)', 'Raw Gain/Loss',
+    'Claimable Gain/Loss', 'SL Denied', 'Superficial?',
+  ];
+  const s3Rows = dispositions.map((d) => [
+    d.transaction.tradeDate ? format(d.transaction.tradeDate, 'yyyy-MM-dd') : '',
+    format(d.transaction.settlementDate, 'yyyy-MM-dd'),
+    d.transaction.symbol, d.transaction.quantity, d.yearOfAcquisition,
+    round2(d.proceeds), round2(d.acbOfSharesSold), round2(d.outlays),
+    round2(d.rawGainLoss), round2(d.allowedGainLoss),
+    d.isSuperficialLoss ? round2(d.superficialLoss) : '',
+    d.isSuperficialLoss ? (Math.abs(d.superficialLoss - Math.abs(d.rawGainLoss)) < 0.01 ? 'Full' : 'Partial') : '',
+  ]);
+  s3Rows.push([
+    'TOTAL', '', '', '', '',
+    round2(dispositions.reduce((s, d) => s + d.proceeds, 0)),
+    round2(dispositions.reduce((s, d) => s + d.acbOfSharesSold, 0)),
+    round2(dispositions.reduce((s, d) => s + d.outlays, 0)),
+    round2(dispositions.reduce((s, d) => s + d.rawGainLoss, 0)),
+    round2(dispositions.reduce((s, d) => s + d.allowedGainLoss, 0)),
+    round2(dispositions.reduce((s, d) => s + d.superficialLoss, 0)),
+    '',
+  ]);
+  const sheet = XLSX.utils.aoa_to_sheet([s3Headers, ...s3Rows]);
+  setColWidths(sheet, s3Headers.length);
+  return sheet;
+}
+
+function buildTransactionsSheet(transactions: Transaction[]): XLSX.WorkSheet {
+  const txHeaders = [
+    'Settlement Date', 'Trade Date', 'Action', 'Symbol', 'Quantity',
+    'Price/Share (orig)', 'Currency', 'FX Rate', 'Price/Share (CAD)',
+    'Commission', 'Total (CAD)',
+  ];
+  const sorted = [...transactions].sort((a, b) => a.settlementDate.getTime() - b.settlementDate.getTime());
+  const txRows = sorted.map((t) => [
+    format(t.settlementDate, 'yyyy-MM-dd'),
+    t.tradeDate ? format(t.tradeDate, 'yyyy-MM-dd') : format(t.settlementDate, 'yyyy-MM-dd'),
+    t.action, t.symbol, round6(t.quantity), round6(t.pricePerShare),
+    t.currency, round4(t.fxRate), round2(t.pricePerShareCAD),
+    round2(t.commission), round2(t.totalCAD),
+  ]);
+  const sheet = XLSX.utils.aoa_to_sheet([txHeaders, ...txRows]);
+  setColWidths(sheet, txHeaders.length);
+  return sheet;
+}
+
 export function downloadFullExcel(
   dispositions: DispositionResult[],
   transactions: Transaction[],

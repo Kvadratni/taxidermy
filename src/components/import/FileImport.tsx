@@ -167,6 +167,33 @@ export default function FileImport() {
         Upload one or more transaction files. Each file will be mapped to a standard format and merged into one report.
       </p>
 
+      {/* Supported formats */}
+      <div
+        className="mb-5 rounded-lg p-4 text-xs"
+        style={{ background: 'var(--color-surface-low)', border: '1px solid rgba(var(--color-outline-variant-raw), 0.2)' }}
+      >
+        <p className="font-semibold text-on-surface mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+          Auto-detected formats
+        </p>
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {['Questrade', 'Wealthsimple', 'Interactive Brokers', 'E*Trade Benefit History', 'AdjustedCostBase.ca', 'G&L Report'].map(name => (
+            <span
+              key={name}
+              className="inline-flex items-center px-2 py-0.5 rounded font-medium"
+              style={{ background: 'rgba(var(--color-primary-fixed-raw), 0.15)', color: 'var(--color-primary)' }}
+            >
+              {name}
+            </span>
+          ))}
+        </div>
+        <p className="text-secondary leading-relaxed">
+          <strong className="text-on-surface">CSV &amp; Excel</strong> — columns are auto-mapped for known brokerages above. Other formats work too — you&apos;ll map columns manually in the next step.
+        </p>
+        <p className="text-secondary leading-relaxed mt-1">
+          <strong className="text-on-surface">PDF</strong> — E*TRADE / Morgan Stanley trade confirmations, RSU releases, and ESPP purchases only. Select multiple PDFs to batch-extract.
+        </p>
+      </div>
+
       {/* Drop zone */}
       <div
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}

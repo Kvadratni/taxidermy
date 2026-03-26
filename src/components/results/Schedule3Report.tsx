@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 
 function FxAmount({ original, currency, fxRate }: { original: number; currency: string; fxRate: number }) {
   return (
-    <div className="text-xs mt-0.5 text-outline-variant">
+    <div className="text-xs mt-0.5 text-secondary">
       {currency} ${original.toFixed(2)} @ {fxRate.toFixed(4)}
     </div>
   );
@@ -177,8 +177,8 @@ export default function Schedule3Report() {
                 <td className="px-4 py-3 text-right">
                   <span className="font-semibold text-on-surface">${d.acbOfSharesSold.toFixed(2)}</span>
                   {d.transaction.currency !== 'CAD' && d.transaction.glOriginalAcb !== undefined && (
-                    <div 
-                      className="text-xs mt-0.5 text-outline-variant"
+                    <div
+                      className="text-xs mt-0.5 text-secondary"
                       title="Broker's recorded original USD cost basis. Your CAD ACB above is calculated independently using historical running average and acquisition FX rates, per Canadian tax regulations."
                     >
                       {d.transaction.currency} ${d.transaction.glOriginalAcb.toFixed(2)} (Broker)
@@ -194,7 +194,7 @@ export default function Schedule3Report() {
                 >
                   {d.isSuperficialLoss ? (
                     <div>
-                      <div className="text-xs text-outline-variant line-through mb-0.5">
+                      <div className="text-xs text-secondary line-through mb-0.5">
                         ${d.rawGainLoss.toFixed(2)}
                       </div>
                       <div
@@ -203,7 +203,7 @@ export default function Schedule3Report() {
                       >
                         ${d.allowedGainLoss.toFixed(2)}
                       </div>
-                      <div className="text-[10px] mt-0.5 text-outline-variant">
+                      <div className="text-[10px] mt-0.5 text-secondary">
                         {Math.abs(d.superficialLoss - Math.abs(d.rawGainLoss)) < 0.01
                           ? 'fully denied'
                           : `$${Math.abs(d.rawGainLoss).toFixed(2)} loss = $${Math.abs(d.allowedGainLoss).toFixed(2)} claimable + $${d.superficialLoss.toFixed(2)} denied`}
