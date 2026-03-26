@@ -1,5 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
-import { parseISO, parse, isValid, addBusinessDays } from 'date-fns';
+import { parseISO, parseDate as parseDateFmt, isValid, addBusinessDays } from '@/lib/date-utils';
 import { ColumnMapping, Transaction, TransactionAction, RawImportData } from '@/types';
 
 function parseDate(value: string): Date | null {
@@ -24,7 +23,7 @@ function parseDate(value: string): Date | null {
   ];
 
   for (const fmt of formats) {
-    const parsed = parse(value, fmt, new Date());
+    const parsed = parseDateFmt(value, fmt);
     if (isValid(parsed)) return parsed;
   }
 
@@ -106,7 +105,7 @@ function mapGlToTransactions(
       const buyDate = parseDate(dateAcquiredStr) || dateSold;
 
       transactions.push({
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         tradeDate: buyDate,
         settlementDate: addBusinessDays(buyDate, 1),
         action: 'BUY',
@@ -124,7 +123,7 @@ function mapGlToTransactions(
       const buyDate = dateSold;
 
       transactions.push({
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         tradeDate: buyDate,
         settlementDate: addBusinessDays(buyDate, 1),
         action: 'BUY',
@@ -141,7 +140,7 @@ function mapGlToTransactions(
 
     // Synthesize a SELL at the sale date
     transactions.push({
-      id: uuidv4(),
+      id: crypto.randomUUID(),
       tradeDate: dateSold,
       settlementDate: addBusinessDays(dateSold, 1),
       action: 'SELL',
@@ -223,7 +222,7 @@ function mapBenefitHistoryToTransactions(
       const finalSymbol = rowSymbol === 'EQUITY' ? 'EQUITY' : rowSymbol;
 
       transactions.push({
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         tradeDate: date,
         settlementDate: addBusinessDays(date, 1),
         action: 'BUY',
@@ -255,7 +254,7 @@ function mapBenefitHistoryToTransactions(
       const finalSymbol = rowSymbol === 'EQUITY' ? 'EQUITY' : rowSymbol;
 
       transactions.push({
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         tradeDate: date,
         settlementDate: addBusinessDays(date, 1),
         action: 'BUY',
@@ -368,7 +367,7 @@ export function mapToTransactions(
     }
 
     transactions.push({
-      id: uuidv4(),
+      id: crypto.randomUUID(),
       tradeDate: date,
       settlementDate,
       action,

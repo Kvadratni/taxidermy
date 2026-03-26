@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { parsePaste } from '@/lib/import/paste-parser';
 import { detectFormat } from '@/lib/mapping/auto-detect';
-import { v4 as uuidv4 } from 'uuid';
 
 export default function PasteImport() {
   const addFile = useAppStore((s) => s.addFile);
@@ -19,7 +18,7 @@ export default function PasteImport() {
       const detection = detectFormat(rawData.headers);
 
       addFile({
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         name: 'Pasted Data',
         rawData,
         detectedFormat: detection?.format ?? null,

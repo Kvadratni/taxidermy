@@ -5,7 +5,6 @@ import { useAppStore } from '@/store/useAppStore';
 import { fetchGoogleSheet } from '@/lib/import/google-sheets';
 import { detectFormat } from '@/lib/mapping/auto-detect';
 import { Loader2 } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
 
 export default function GoogleSheetsImport() {
   const addFile = useAppStore((s) => s.addFile);
@@ -22,7 +21,7 @@ export default function GoogleSheetsImport() {
       const detection = detectFormat(rawData.headers);
 
       addFile({
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         name: 'Google Sheet',
         rawData,
         detectedFormat: detection?.format ?? null,

@@ -1,5 +1,5 @@
 import { Transaction, ValidationIssue } from '@/types';
-import { format } from 'date-fns';
+import { formatDate as format } from '@/lib/date-utils';
 
 /**
  * Validate a merged set of transactions for common issues.

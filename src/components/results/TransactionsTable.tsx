@@ -2,7 +2,7 @@
 
 import { useAppStore } from '@/store/useAppStore';
 import { useMemo, useState } from 'react';
-import { format } from 'date-fns';
+import { formatDate as format } from '@/lib/date-utils';
 
 type SortKey = 'settlementDate' | 'tradeDate';
 type SortDir = 'asc' | 'desc';

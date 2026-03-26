@@ -6,7 +6,6 @@ import { parseCsvFile } from '@/lib/import/csv-parser';
 import { parseXlsxFile } from '@/lib/import/xlsx-parser';
 import { detectFormat } from '@/lib/mapping/auto-detect';
 import { FileSpreadsheet, X, CheckCircle2, Plus, Loader2 } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
 import { parsePdfBatch } from '@/lib/import/pdf-parser';
 import { isAcbFormat, normalizeAcbData } from '@/lib/import/acb-normalizer';
 
@@ -42,7 +41,7 @@ export default function FileImport() {
       const detection = detectFormat(rawData.headers);
 
       addFile({
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         name: file.name,
         rawData,
         detectedFormat: detection?.format ?? null,
@@ -100,7 +99,7 @@ export default function FileImport() {
           ]);
 
           addFile({
-            id: uuidv4(),
+            id: crypto.randomUUID(),
             name: `Trade Confirmations Batch (${pdfTxns.length} extracted)`,
             rawData: { headers, rows, source: 'pdf' },
             detectedFormat: 'PDF Trade Confirmations',

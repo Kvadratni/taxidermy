@@ -5,8 +5,8 @@ import {
   processSell,
   processSplit,
   processRoc,
-  calculateDispositions,
 } from '@/lib/engine/acb';
+import { calculateGains } from '@/lib/engine/gains';
 import { Transaction } from '@/types';
 
 function makeTxn(overrides: Partial<Transaction>): Transaction {
@@ -114,14 +114,14 @@ describe('processRoc', () => {
   });
 });
 
-describe('calculateDispositions', () => {
+describe('calculateGains', () => {
   it('processes multiple symbols independently', () => {
     const txns: Transaction[] = [
       makeTxn({ id: '1', symbol: 'AAPL', action: 'BUY', quantity: 100, pricePerShareCAD: 10, commission: 0, settlementDate: new Date('2025-01-02') }),
       makeTxn({ id: '2', symbol: 'MSFT', action: 'BUY', quantity: 50, pricePerShareCAD: 20, commission: 0, settlementDate: new Date('2025-01-03') }),
       makeTxn({ id: '3', symbol: 'AAPL', action: 'SELL', quantity: 100, pricePerShareCAD: 15, commission: 0, settlementDate: new Date('2025-06-01') }),
     ];
-    const { dispositions } = calculateDispositions(txns);
+    const { dispositions } = calculateGains(txns);
     expect(dispositions).toHaveLength(1);
     expect(dispositions[0].rawGainLoss).toBeCloseTo(500);
     expect(dispositions[0].transaction.symbol).toBe('AAPL');
@@ -132,7 +132,7 @@ describe('calculateDispositions', () => {
       makeTxn({ id: '1', action: 'SELL', quantity: 100, pricePerShareCAD: 15, commission: 0, settlementDate: new Date('2025-06-01') }),
       makeTxn({ id: '2', action: 'BUY', quantity: 100, pricePerShareCAD: 10, commission: 0, settlementDate: new Date('2025-01-01') }),
     ];
-    const { dispositions } = calculateDispositions(txns);
+    const { dispositions } = calculateGains(txns);
     expect(dispositions[0].rawGainLoss).toBeCloseTo(500);
   });
 });

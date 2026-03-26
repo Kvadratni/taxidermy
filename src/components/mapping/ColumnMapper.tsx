@@ -8,7 +8,7 @@ import { mapToTransactions, MappingError } from '@/lib/mapping/column-mapper';
 import { fetchFxRates, lookupRate, getCachedRates } from '@/lib/engine/fx';
 import { calculateGains } from '@/lib/engine/gains';
 import { validateTransactions } from '@/lib/engine/validate-transactions';
-import { format as formatDate, min as dateMin, max as dateMax } from 'date-fns';
+import { formatDate, dateMin, dateMax } from '@/lib/date-utils';
 import { Loader2, AlertTriangle, CheckCircle2, FileSpreadsheet, ShieldAlert } from 'lucide-react';
 import HoldingsChart from '../results/HoldingsChart';
 import { ArrowRight } from 'lucide-react';

@@ -1,4 +1,4 @@
-import { format, subDays } from 'date-fns';
+import { formatDate as format, subDays } from '@/lib/date-utils';
 import { FxRateCache } from '@/types';
 
 const CACHE_KEY = 'taxidermy_fx_cache';

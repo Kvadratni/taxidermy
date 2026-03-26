@@ -119,8 +119,40 @@ The engine calculates:
 - **Recharts** for interactive charts
 - **pdfjs-dist** for client-side PDF text extraction
 - **jsPDF + jspdf-autotable** for PDF report generation
-- **SheetJS (xlsx)** for Excel export
 - **html2canvas-pro** for chart-to-PDF capture
+
+### Minimal dependencies by design
+
+To reduce supply chain risk, this project replaces several common npm packages with small, local implementations:
+
+- **Date utilities** (`src/lib/date-utils.ts`) — replaces `date-fns`
+- **CSV parser** (`src/lib/csv-parser.ts`) — replaces `papaparse`
+- **XLSX reader/writer** (`src/lib/xlsx-local.ts` + `src/lib/zip.ts`) — replaces `xlsx` (SheetJS)
+- **UUIDs** — uses the native `crypto.randomUUID()` browser API instead of the `uuid` package
+
+This keeps the dependency tree small and auditable. See [AGENTS.md](AGENTS.md) for guidelines on when to add vs. implement locally.
+
+## Testing
+
+```bash
+npm test          # run all tests once
+npm run test:watch  # watch mode
+```
+
+The test suite includes:
+
+- **Unit tests** — ACB processing (buy, sell, split, return of capital), superficial loss formula, tax estimation
+- **Integration tests** — Full pipeline tests that parse CSV fixtures through the calculation engine and assert on dispositions, superficial loss detection, ACB propagation, and totals
+
+Test fixtures in `__tests__/integration/fixtures/` cover:
+
+| Fixture | Scenarios |
+|---|---|
+| `multi-currency-multi-year.csv` | USD + CAD stocks across 2022–2024 with FX rates |
+| `canadian-only.csv` | Pure CAD, 5 TSX stocks, commissions, partial sells, ACB averaging |
+| `superficial-loss-edges.csv` | Full SL, partial SL, no SL (outside window), no SL (sold before day+30), chained SL propagation, gains with rebuy |
+
+All tests run offline with no network access required (FX rates are embedded in fixtures).
 
 ## Getting Started
 

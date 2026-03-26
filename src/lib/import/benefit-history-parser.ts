@@ -1,5 +1,5 @@
-import * as XLSX from 'xlsx';
-import { parse, isValid } from 'date-fns';
+import { readXlsx } from '@/lib/xlsx-local';
+import { parseDate as parseDateFmt, isValid } from '@/lib/date-utils';
 
 export interface VestEvent {
   date: Date;
@@ -11,12 +11,26 @@ export interface VestEvent {
   purchasePrice?: number;
 }
 
+/** Convert a 2D string array (with header row) into an array of objects. */
+function sheetToObjects(rows: string[][]): Record<string, string | number>[] {
+  if (rows.length < 2) return [];
+  const headers = rows[0];
+  return rows.slice(1).map(row => {
+    const obj: Record<string, string | number> = {};
+    for (let i = 0; i < headers.length; i++) {
+      const key = headers[i]?.trim();
+      if (key) obj[key] = row[i] ?? '';
+    }
+    return obj;
+  });
+}
+
 function parseFlexDate(value: string): Date | null {
   // Try MM/DD/YYYY (event rows)
-  let d = parse(value, 'MM/dd/yyyy', new Date());
+  let d = parseDateFmt(value, 'MM/dd/yyyy');
   if (isValid(d)) return d;
   // Try DD-MMM-YYYY (grant/purchase rows)
-  d = parse(value, 'dd-MMM-yyyy', new Date());
+  d = parseDateFmt(value, 'dd-MMM-yyyy');
   if (isValid(d)) return d;
   return null;
 }
@@ -24,14 +38,14 @@ function parseFlexDate(value: string): Date | null {
 /**
  * Parse a BenefitHistory.xlsx file and extract all vest/purchase events.
  */
-export function parseBenefitHistory(buffer: ArrayBuffer): VestEvent[] {
-  const workbook = XLSX.read(buffer, { type: 'array' });
+export async function parseBenefitHistory(buffer: ArrayBuffer): Promise<VestEvent[]> {
+  const workbook = await readXlsx(buffer);
   const events: VestEvent[] = [];
 
   // ── Restricted Stock tab ──
-  if (workbook.SheetNames.includes('Restricted Stock')) {
-    const sheet = workbook.Sheets['Restricted Stock'];
-    const rows = XLSX.utils.sheet_to_json<Record<string, string | number>>(sheet);
+  if (workbook.sheetNames.includes('Restricted Stock')) {
+    const rawRows = workbook.sheets['Restricted Stock'];
+    const rows = sheetToObjects(rawRows);
 
     // We need to carry the Grant Number and Symbol from the parent "Grant" row
     // into the child "Event" rows that follow it.
@@ -70,9 +84,9 @@ export function parseBenefitHistory(buffer: ArrayBuffer): VestEvent[] {
   }
 
   // ── ESPP tab ──
-  if (workbook.SheetNames.includes('ESPP')) {
-    const sheet = workbook.Sheets['ESPP'];
-    const rows = XLSX.utils.sheet_to_json<Record<string, string | number>>(sheet);
+  if (workbook.sheetNames.includes('ESPP')) {
+    const rawRows = workbook.sheets['ESPP'];
+    const rows = sheetToObjects(rawRows);
 
     for (const row of rows) {
       const recordType = String(row['Record Type'] ?? '').trim();
@@ -102,18 +116,7 @@ export function parseBenefitHistory(buffer: ArrayBuffer): VestEvent[] {
   return events;
 }
 
-export function parseBenefitHistoryFile(file: File): Promise<VestEvent[]> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const buffer = e.target?.result as ArrayBuffer;
-        resolve(parseBenefitHistory(buffer));
-      } catch (err) {
-        reject(err);
-      }
-    };
-    reader.onerror = () => reject(new Error('Failed to read benefit history file'));
-    reader.readAsArrayBuffer(file);
-  });
+export async function parseBenefitHistoryFile(file: File): Promise<VestEvent[]> {
+  const buffer = await file.arrayBuffer();
+  return parseBenefitHistory(buffer);
 }

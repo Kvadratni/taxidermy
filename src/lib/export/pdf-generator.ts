@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { AcbRecord, DispositionResult, SuperficialLossDetail, TaxEstimate, Transaction } from '@/types';
-import { format } from 'date-fns';
+import { formatDate as format } from '@/lib/date-utils';
 
 // ---------------------------------------------------------------------------
 // Full PDF report: Tax Summary + Holdings Chart + Schedule 3 + Securities +

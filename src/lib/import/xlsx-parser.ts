@@ -1,10 +1,10 @@
-import * as XLSX from 'xlsx';
+import { readXlsx } from '@/lib/xlsx-local';
 import { RawImportData } from '@/types';
 
-export function parseXlsx(buffer: ArrayBuffer): RawImportData {
-  const workbook = XLSX.read(buffer, { type: 'array' });
-  const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-  const data = XLSX.utils.sheet_to_json<string[]>(firstSheet, { header: 1 });
+export async function parseXlsx(buffer: ArrayBuffer): Promise<RawImportData> {
+  const workbook = await readXlsx(buffer);
+  const firstSheetName = workbook.sheetNames[0];
+  const data = workbook.sheets[firstSheetName] ?? [];
 
   const rows = data.filter((row) => row.length > 0).map((row) => row.map(String));
 
@@ -19,18 +19,7 @@ export function parseXlsx(buffer: ArrayBuffer): RawImportData {
   };
 }
 
-export function parseXlsxFile(file: File): Promise<RawImportData> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const buffer = e.target?.result as ArrayBuffer;
-        resolve(parseXlsx(buffer));
-      } catch (err) {
-        reject(err);
-      }
-    };
-    reader.onerror = () => reject(new Error('Failed to read file'));
-    reader.readAsArrayBuffer(file);
-  });
+export async function parseXlsxFile(file: File): Promise<RawImportData> {
+  const buffer = await file.arrayBuffer();
+  return parseXlsx(buffer);
 }

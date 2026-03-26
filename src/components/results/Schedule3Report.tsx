@@ -2,7 +2,7 @@
 
 import { useAppStore } from '@/store/useAppStore';
 import { useMemo, useState } from 'react';
-import { format } from 'date-fns';
+import { formatDate as format } from '@/lib/date-utils';
 
 function FxAmount({ original, currency, fxRate }: { original: number; currency: string; fxRate: number }) {
   return (
