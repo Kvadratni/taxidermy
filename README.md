@@ -86,7 +86,7 @@ Filing Canadian capital gains taxes is painful — especially if you have E\*TRA
 - **Tax estimation** — Federal + provincial tax estimates for all Canadian provinces and territories
 - **Interactive charts** — Holdings balance graph and batch lifespan visualization (Recharts)
 - **Dark mode** — Full dark/light theme with system preference detection
-- **Export everything** — PDF (full report with charts), CSV (Schedule 3), Excel (multi-sheet workbook with Schedule 3, Securities, and All Transactions)
+- **Export everything** — PDF (full report with charts), CSV (Schedule 3), Excel (multi-sheet workbook with Schedule 3, Securities, and All Transactions — with multi-year export for separate Schedule 3 sheets per tax year)
 - **Persistent state** — Your data survives page reloads via localStorage (cleared only by "Start Over")
 - **100% client-side** — Static site, no backend, no data leaves your browser
 - **Deployed on GitHub Pages** — Free hosting, zero cost
@@ -108,7 +108,7 @@ The engine calculates:
 
 ### 4. Export
 - **PDF** — Complete multi-page report: Tax Summary, Holdings Chart, Schedule 3, Superficial Loss Details, Securities Holdings, All Transactions
-- **Excel** — Three-sheet workbook covering everything
+- **Excel** — Three-sheet workbook covering everything, with an "All Years" option that creates a separate Schedule 3 sheet per tax year
 - **CSV** — Schedule 3 dispositions for quick import elsewhere
 
 ## Tech Stack
@@ -159,6 +159,7 @@ Live at: **https://kvadratni.github.io/taxidermy/**
 | Questrade CSV | Yes | Transaction Date, Action, Symbol, Quantity, Price, Commission, Currency |
 | Wealthsimple CSV | Yes | Date, Type, Symbol, Quantity, Price, Currency |
 | Interactive Brokers CSV | Yes | Uses positive/negative quantity for buy/sell |
+| AdjustedCostBase.ca (CSV/XLSX) | Yes | Exported transaction data with FX and foreign currency support |
 | E\*TRADE G&L Report (XLSX) | Yes | Gains & Losses with Date Acquired, Date Sold, Proceeds, Cost Basis |
 | E\*TRADE Benefit History | Yes | RSU/ESPP vesting events |
 | E\*TRADE Trade Confirmation PDFs | Yes | Bulk PDF parsing for sell-to-cover, manual trades (2020-2026 formats) |
