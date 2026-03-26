@@ -105,7 +105,7 @@ async function inflateRaw(compressed: Uint8Array, _expectedSize: number): Promis
   const writer = ds.writable.getWriter();
   const reader = ds.readable.getReader();
 
-  writer.write(compressed);
+  writer.write(compressed as unknown as BufferSource);
   writer.close();
 
   const chunks: Uint8Array[] = [];

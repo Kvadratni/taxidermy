@@ -196,9 +196,22 @@ export default function HoldingsChart({ transactions }: { transactions: Transact
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(var(--color-outline-variant-raw), 0.3)" vertical={false} />
               <XAxis dataKey="name" stroke="var(--color-secondary)" fontSize={11} tickMargin={10} minTickGap={30} />
               <YAxis stroke="var(--color-secondary)" fontSize={11} width={40} tickFormatter={(val: number) => val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val.toString()} />
-              <Tooltip 
-                contentStyle={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-outline-variant)', borderRadius: '8px', fontSize: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
-                labelStyle={{ color: 'var(--color-on-surface)', fontWeight: 'bold', marginBottom: '4px' }}
+              <Tooltip
+                content={({ active, payload, label }) => {
+                  if (!active || !payload) return null;
+                  const nonZero = payload.filter((p) => (p.value as number) > 0);
+                  if (nonZero.length === 0) return null;
+                  return (
+                    <div style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-outline-variant)', borderRadius: '8px', fontSize: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', padding: '8px 12px', maxHeight: '300px', overflowY: 'auto' }}>
+                      <p style={{ color: 'var(--color-on-surface)', fontWeight: 'bold', marginBottom: '4px' }}>{label}</p>
+                      {nonZero.map((entry) => (
+                        <p key={entry.dataKey as string} style={{ color: entry.color, margin: '2px 0' }}>
+                          {entry.name} : {entry.value}
+                        </p>
+                      ))}
+                    </div>
+                  );
+                }}
               />
               {/* Only show legend if areaKeys is small, otherwise it gets too noisy */}
               {areaKeys.length <= 15 && <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} iconType="square" />}
