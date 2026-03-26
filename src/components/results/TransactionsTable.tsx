@@ -61,10 +61,10 @@ export default function TransactionsTable() {
                   background: i % 2 === 0 ? 'var(--color-surface)' : 'var(--color-surface-low)',
                 }}
               >
-                <td className="px-3 py-2 text-xs text-secondary font-semibold">
+                <td className="px-3 py-2 text-xs text-secondary font-semibold whitespace-nowrap" style={{ minWidth: '6.5rem' }}>
                   {t.tradeDate ? format(t.tradeDate, 'yyyy-MM-dd') : '—'}
                 </td>
-                <td className="px-3 py-2 text-xs text-secondary font-semibold">
+                <td className="px-3 py-2 text-xs text-secondary font-semibold whitespace-nowrap" style={{ minWidth: '6.5rem' }}>
                   {format(t.settlementDate, 'yyyy-MM-dd')}
                 </td>
                 <td className="px-3 py-2">

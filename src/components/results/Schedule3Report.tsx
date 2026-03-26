@@ -87,8 +87,8 @@ export default function Schedule3Report() {
               {['Trade Date', 'Settlement Date', 'Description', 'Year Acq.', 'Proceeds', 'ACB', 'Outlays', 'Gain (Loss)', 'SL Denied'].map((h) => (
                 <th
                   key={h}
-                  className={`px-4 py-3 font-bold text-xs uppercase tracking-wider text-secondary ${['Trade Date', 'Settlement Date', 'Description', 'Year Acq.'].includes(h) ? 'text-left' : 'text-right'}`}
-                  style={{ fontFamily: 'var(--font-display)' }}
+                  className={`px-4 py-3 font-bold text-xs uppercase tracking-wider text-secondary whitespace-nowrap ${['Trade Date', 'Settlement Date', 'Description', 'Year Acq.'].includes(h) ? 'text-left' : 'text-right'}`}
+                  style={{ fontFamily: 'var(--font-display)', ...((h === 'Trade Date' || h === 'Settlement Date') ? { minWidth: '6.5rem' } : {}) }}
                 >
                   {h}
                 </th>
@@ -106,11 +106,11 @@ export default function Schedule3Report() {
                     : i % 2 === 0 ? 'var(--color-surface)' : 'var(--color-surface-low)',
                 }}
               >
-                <td className="px-4 py-3 text-xs font-semibold" style={{ color: d.isSuperficialLoss ? 'var(--color-loss)' : 'var(--color-secondary)' }}>
+                <td className="px-4 py-3 text-xs font-semibold whitespace-nowrap" style={{ color: d.isSuperficialLoss ? 'var(--color-loss)' : 'var(--color-secondary)', minWidth: '6.5rem' }}>
                   {d.isSuperficialLoss && <span title="Superficial Loss" className="mr-1">⚠️</span>}
                   {d.transaction.tradeDate ? format(d.transaction.tradeDate, 'yyyy-MM-dd') : '—'}
                 </td>
-                <td className="px-4 py-3 text-xs font-semibold" style={{ color: d.isSuperficialLoss ? 'var(--color-loss)' : 'var(--color-secondary)' }}>
+                <td className="px-4 py-3 text-xs font-semibold whitespace-nowrap" style={{ color: d.isSuperficialLoss ? 'var(--color-loss)' : 'var(--color-secondary)', minWidth: '6.5rem' }}>
                   {format(d.transaction.settlementDate, 'yyyy-MM-dd')}
                 </td>
                 <td className="px-4 py-3">

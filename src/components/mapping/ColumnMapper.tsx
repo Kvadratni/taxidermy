@@ -76,7 +76,7 @@ function detectTickerRenames(transactions: Transaction[]): Record<string, string
 
 const FIELD_OPTIONS = [
   { value: '', label: '-- Ignore --' },
-  { value: 'date', label: 'Date' },
+  { value: 'date', label: 'Trade Date' },
   { value: 'settlementDate', label: 'Settlement Date' },
   { value: 'action', label: 'Action (Buy/Sell)' },
   { value: 'symbol', label: 'Symbol / Ticker' },
@@ -92,7 +92,9 @@ const FIELD_OPTIONS = [
   { value: 'acbTotal', label: 'Adjusted Cost Basis (G&L)' },
 ];
 
-const REQUIRED_FIELDS = ['date', 'action', 'symbol', 'quantity', 'price'];
+// At least one date field (date or settlementDate) is required — checked separately
+const REQUIRED_FIELDS = ['action', 'symbol', 'quantity', 'price'];
+const DATE_FIELDS = ['date', 'settlementDate'];
 const REQUIRED_FIELDS_GL = ['dateSold', 'totalProceeds', 'acbTotal', 'quantity'];
 
 // ─── Per-file mapping panel ──────────────────────────────────
@@ -196,7 +198,11 @@ function FileMappingPanel({
 
   const assignedFields = Object.values(assignments).filter(Boolean);
   const required = isGlMode ? REQUIRED_FIELDS_GL : REQUIRED_FIELDS;
-  const missingFields = required.filter((f) => !assignedFields.includes(f));
+  const hasDate = DATE_FIELDS.some((f) => assignedFields.includes(f));
+  const missingFields = [
+    ...required.filter((f) => !assignedFields.includes(f)),
+    ...(!isGlMode && !hasDate ? ['date or settlementDate'] : []),
+  ];
   const previewRows = file.rawData.rows.slice(0, 4);
 
   return (
@@ -370,16 +376,23 @@ export default function ColumnMapper() {
       };
     }
 
-    if (reverse.date === undefined || reverse.quantity === undefined) return null;
+    // Need at least one date column and quantity
+    if (reverse.date === undefined && reverse.settlementDate === undefined) return null;
+    if (reverse.quantity === undefined) return null;
+
+    // If only one date column is mapped, use it as settlement date (primary)
+    const hasSettlement = reverse.settlementDate !== undefined;
+    const hasTradeDate = reverse.date !== undefined;
+
     return {
-      date: reverse.date,
+      date: hasTradeDate ? reverse.date! : reverse.settlementDate!,
       quantity: reverse.quantity,
       action: reverse.action,
       symbol: reverse.symbol,
       price: reverse.price,
       commission: reverse.commission,
       currency: reverse.currency,
-      settlementDate: reverse.settlementDate,
+      settlementDate: hasSettlement ? reverse.settlementDate : undefined,
       totalAmount: reverse.totalAmount,
     };
   }, []);
@@ -394,7 +407,8 @@ export default function ColumnMapper() {
 
     const assignedFields = Object.values(state.assignments).filter(Boolean);
     const required = state.isGl ? REQUIRED_FIELDS_GL : REQUIRED_FIELDS;
-    return required.every((f) => assignedFields.includes(f));
+    const hasDate = state.isGl || DATE_FIELDS.some((f) => assignedFields.includes(f));
+    return required.every((f) => assignedFields.includes(f)) && hasDate;
   }, [importedFiles, fileMappingState]);
 
   const allFilesValid = importedFiles.every(f => isFileValid(f.id));
