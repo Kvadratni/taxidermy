@@ -106,6 +106,10 @@ export const useAppStore = create<AppState>()(
       setProvince: (code: string) => set({ province: code }),
       setTaxYear: (year: number) => set({ taxYear: year }),
 
+      // UI (non-persisted)
+      mathGuideOpen: false,
+      setMathGuideOpen: (open: boolean) => set({ mathGuideOpen: open }),
+
       // Reset — clears persisted state too
       reset: () =>
         set({

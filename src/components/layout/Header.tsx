@@ -47,17 +47,13 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-1">
-          <a
-            href="#how-it-works"
-            onClick={(e) => {
-              e.preventDefault();
-              document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
-            }}
+          <button
+            onClick={() => useAppStore.getState().setMathGuideOpen(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-on-surface-variant hover:text-primary transition-colors rounded"
           >
             <BookOpen size={12} />
             How it Works
-          </a>
+          </button>
           <a
             href="https://ko-fi.com/maxnovich"
             target="_blank"

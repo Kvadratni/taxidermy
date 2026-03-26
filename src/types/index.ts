@@ -169,4 +169,8 @@ export interface AppState {
 
   // Reset
   reset: () => void;
+
+  // UI (non-persisted)
+  mathGuideOpen: boolean;
+  setMathGuideOpen: (open: boolean) => void;
 }

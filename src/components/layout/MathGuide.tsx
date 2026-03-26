@@ -1,7 +1,9 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, BookOpen } from 'lucide-react';
+import { ChevronDown, ChevronRight, BookOpen, X } from 'lucide-react';
+import { useAppStore } from '@/store/useAppStore';
 
 function Section({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -20,21 +22,48 @@ function Section({ title, children, defaultOpen = false }: { title: string; chil
 }
 
 export default function MathGuide() {
-  const [expanded, setExpanded] = useState(false);
+  const open = useAppStore((s) => s.mathGuideOpen);
+  const setOpen = useAppStore((s) => s.setMathGuideOpen);
+
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
+
+  if (!open) return null;
 
   return (
-    <section id="how-it-works" className="mt-16 mb-8">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
-      >
-        <BookOpen size={16} />
-        How the Math Works
-        {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-      </button>
+    <div
+      className="fixed inset-0 z-[100] flex items-start justify-center"
+      onClick={() => setOpen(false)}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
-      {expanded && (
-        <div className="mt-4 rounded-xl border border-outline-variant/30 bg-surface-container/50 p-6">
+      {/* Panel */}
+      <div
+        className="relative mt-16 mb-16 w-full max-w-2xl max-h-[calc(100vh-8rem)] overflow-y-auto rounded-2xl border border-outline-variant/30 bg-surface shadow-2xl p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2 text-base font-semibold text-on-surface">
+            <BookOpen size={18} />
+            How the Math Works
+          </div>
+          <button
+            onClick={() => setOpen(false)}
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors"
+            aria-label="Close"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="rounded-xl border border-outline-variant/30 bg-surface-container/50 p-4">
           <Section title="Foreign Currency Conversion (USD → CAD)" defaultOpen>
             <p>
               Per subsection 261(2) of the Income Tax Act and CRA Folio S5-F4-C1, each
@@ -156,7 +185,7 @@ export default function MathGuide() {
             </ul>
           </Section>
         </div>
-      )}
-    </section>
+      </div>
+    </div>
   );
 }

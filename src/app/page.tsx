@@ -40,9 +40,7 @@ export default function Home() {
         )}
       </main>
 
-      <footer className="mx-auto w-full max-w-6xl px-6">
-        <MathGuide />
-      </footer>
+      <MathGuide />
     </div>
   );
 }
