@@ -9,9 +9,18 @@
  */
 export const KNOWN_TICKER_RENAMES: [string, string][] = [
   // US equities
-  ['SQ', 'XYZ'],          // Block (formerly Square) — renamed June 2025
-  ['FB', 'META'],         // Meta Platforms — renamed June 2022
-  ['TWTR', 'X'],          // X Corp (formerly Twitter) — delisted/renamed 2023
+  ['SQ', 'XYZ'],          // Block (formerly Square) — 2025
+  ['FB', 'META'],         // Meta Platforms — 2022
+  ['TWTR', 'X'],          // X Corp (formerly Twitter) — 2023
+  ['OSTK', 'BYON'],       // Beyond Inc. (formerly Overstock) — 2023
+  ['VIAC', 'PARA'],       // Paramount Global (formerly ViacomCBS) — 2022
+  ['SGMS', 'LNW'],        // Light & Wonder (formerly Scientific Games) — 2022
+  ['TOT', 'TTE'],         // TotalEnergies — 2021
+  ['PCLN', 'BKNG'],       // Booking Holdings (formerly Priceline) — 2018
+  ['TASR', 'AXON'],       // Axon Enterprise (formerly Taser) — 2017
+  ['COH', 'TPR'],         // Tapestry (formerly Coach) — 2017
+  ['KORS', 'CPRI'],       // Capri Holdings (formerly Michael Kors) — 2018
+  ['WTW', 'WW'],          // WW International (formerly Weight Watchers) — 2018
 
   // Canadian equities
   ['WEED.TO', 'CGC.TO'],  // Canopy Growth — renamed
