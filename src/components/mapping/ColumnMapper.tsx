@@ -9,6 +9,7 @@ import { fetchFxRates, lookupRate, getCachedRates } from '@/lib/engine/fx';
 import { calculateGains } from '@/lib/engine/gains';
 import { validateTransactions } from '@/lib/engine/validate-transactions';
 import { formatDate, dateMin, dateMax } from '@/lib/date-utils';
+import { matchKnownRenames } from '@/lib/constants/ticker-renames';
 import { Loader2, AlertTriangle, CheckCircle2, FileSpreadsheet, ShieldAlert } from 'lucide-react';
 import HoldingsChart from '../results/HoldingsChart';
 import { ArrowRight } from 'lucide-react';
@@ -490,11 +491,16 @@ export default function ColumnMapper() {
       }
 
       // ── Auto-detect ticker renames ────────────────────────
+      // Merge heuristic detection with known renames (SQ→XYZ, FB→META, etc.)
       const detected = detectTickerRenames(allTransactions);
-      if (Object.keys(detected).length > 0) {
-        setSuggestedAliases(detected);
+      const allSymbols = new Set(allTransactions.map((t) => t.symbol));
+      const knownMatches = matchKnownRenames(allSymbols);
+      const combinedDetected = { ...detected, ...knownMatches };
+
+      if (Object.keys(combinedDetected).length > 0) {
+        setSuggestedAliases(combinedDetected);
         // Auto-apply detected renames
-        const merged = { ...symbolAliases, ...detected };
+        const merged = { ...symbolAliases, ...combinedDetected };
         setSymbolAliases(merged);
         applySymbolAliases(allTransactions, merged);
       } else if (Object.keys(symbolAliases).length > 0) {
