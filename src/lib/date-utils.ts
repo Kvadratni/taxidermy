@@ -61,19 +61,36 @@ export function isValid(date: Date): boolean {
 export function parseDate(value: string, pattern: string, _ref?: Date): Date {
   const s = value.trim();
 
-  // Build a regex from the pattern
-  let re = pattern
-    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // escape regex chars first
-    .replace('yyyy', '(?<y>\\d{4})')
-    .replace('MMMM', '(?<ML>[A-Za-z]+)')
-    .replace('MMM', '(?<MS>[A-Za-z]{3})')
-    .replace('MM', '(?<M>\\d{2})')
-    .replace(/(?<!\\)M(?![LSa-z])/, '(?<M>\\d{1,2})')
-    .replace('dd', '(?<d>\\d{2})')
-    .replace(/(?<!\\)d(?![da-z])/, '(?<d>\\d{1,2})');
+  // Token map: pattern token → { placeholder, regex, group }
+  // We use a single-pass approach to avoid chained .replace() corrupting
+  // previously-inserted capture groups (e.g. M matching inside (?<M>...)).
+  const tokens: [string, string, string][] = [
+    // [token, placeholder, regex fragment]
+    ['yyyy', '\x01Y\x01', '(?<y>\\d{4})'],
+    ['MMMM', '\x01ML\x01', '(?<ML>[A-Za-z]+)'],
+    ['MMM', '\x01MS\x01', '(?<MS>[A-Za-z]{3})'],
+    ['MM', '\x01M2\x01', '(?<M>\\d{2})'],
+    ['M', '\x01M1\x01', '(?<M>\\d{1,2})'],
+    ['dd', '\x01D2\x01', '(?<d>\\d{2})'],
+    ['d', '\x01D1\x01', '(?<d>\\d{1,2})'],
+  ];
 
-  // Un-escape commas that were escaped
-  re = re.replace('\\,', ',');
+  // Step 1: Replace tokens with placeholders (longest first, already ordered)
+  let work = pattern;
+  for (const [token, placeholder] of tokens) {
+    work = work.replace(token, placeholder);
+  }
+
+  // Step 2: Escape any remaining regex-special characters in the literal parts
+  work = work.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  // Step 3: Replace placeholders with actual regex groups
+  for (const [, placeholder, regex] of tokens) {
+    work = work.replace(placeholder, regex);
+  }
+
+  // Un-escape commas
+  const re = work.replace('\\,', ',');
 
   const match = s.match(new RegExp(`^${re}$`));
   if (!match?.groups) return new Date(NaN);

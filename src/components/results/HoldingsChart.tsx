@@ -105,16 +105,24 @@ export default function HoldingsChart({ transactions }: { transactions: Transact
           }
         }
 
-        // Record the states of all historical and active lots for this point
+        // Remove fully depleted lots so they don't appear in chart/tooltip
+        activeLots = activeLots.filter(lot => lot.currQty > 0.0001);
+
+        // Record the states of active lots for this point
         for (const lot of activeLots) {
-          point[lot.key] = Number(lot.currQty.toFixed(4));
+          point[lot.key] = Math.round(lot.currQty);
         }
 
         areaChartData.push(point);
       }
     }
 
-    return { symbols: allSymbols, lineChartData, areaChartData, areaKeys };
+    // Only include batch keys that still have data in at least one data point
+    const liveAreaKeys = areaKeys.filter(key =>
+      areaChartData.some(point => (point[key] ?? 0) > 0)
+    );
+
+    return { symbols: allSymbols, lineChartData, areaChartData, areaKeys: liveAreaKeys };
   }, [transactions, selectedSymbol]);
 
   // Handle selectedSymbol updates natively
