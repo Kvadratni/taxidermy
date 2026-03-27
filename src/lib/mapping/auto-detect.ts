@@ -74,6 +74,7 @@ function buildMappingForFormat(
       const acbTotal = headerIndex(headers, 'Adjusted Cost Basis');
       const quantity = headerIndex(headers, 'Quantity');
       const dateAcquired = headerIndex(headers, 'Date Acquired');
+      const symbol = headerIndex(headers, 'Symbol');
 
       if (dateSold < 0 || totalProceeds < 0 || acbTotal < 0 || quantity < 0) return null;
 
@@ -85,6 +86,7 @@ function buildMappingForFormat(
         dateAcquired: dateAcquired >= 0 ? dateAcquired : undefined,
         totalProceeds,
         acbTotal,
+        symbol: symbol >= 0 ? symbol : undefined,
       };
     }
 

@@ -63,13 +63,24 @@ function mapGlToTransactions(
   const transactions: Transaction[] = [];
   const errors: MappingError[] = [];
 
+  // Detect Record Type column for E*Trade G&L files (used to skip Summary rows)
+  const recordTypeIdx = data.headers.findIndex(
+    (h) => h.trim().toLowerCase() === 'record type'
+  );
+
   for (let i = 0; i < data.rows.length; i++) {
     const row = data.rows[i];
     const rowNum = i + 2;
 
+    // Skip Summary/header rows in E*Trade G&L files
+    if (recordTypeIdx >= 0) {
+      const recordType = (row[recordTypeIdx] ?? '').trim().toLowerCase();
+      if (recordType !== 'sell' && recordType !== '') continue;
+    }
+
     const dateSoldStr = (row[mapping.dateSold!] ?? '').trim();
     const qtyStr = (row[mapping.quantity!] ?? '').trim();
-    
+
     // Skip empty rows or summary rows
     if (!dateSoldStr && !qtyStr) continue;
 

@@ -61,11 +61,13 @@ function detectTickerRenames(transactions: Transaction[]): Record<string, string
       const ninetyDays = 90 * 24 * 60 * 60 * 1000;
 
       // A ends before B starts (A is old ticker, B is new)
-      if (gapAB > 0 && gapAB < ninetyDays && rangeA.count >= 3 && rangeB.count >= 3) {
+      // Threshold of 2 transactions accommodates G&L imports where each row
+      // generates a synthetic BUY+SELL pair (so 1 G&L row = count 2).
+      if (gapAB > 0 && gapAB < ninetyDays && rangeA.count >= 2 && rangeB.count >= 2) {
         aliases[symA] = symB;
       }
       // B ends before A starts (B is old ticker, A is new)
-      else if (gapBA > 0 && gapBA < ninetyDays && rangeA.count >= 3 && rangeB.count >= 3) {
+      else if (gapBA > 0 && gapBA < ninetyDays && rangeA.count >= 2 && rangeB.count >= 2) {
         aliases[symB] = symA;
       }
     }
