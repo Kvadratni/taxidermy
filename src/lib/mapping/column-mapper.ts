@@ -68,6 +68,21 @@ function mapGlToTransactions(
     (h) => h.trim().toLowerCase() === 'record type'
   );
 
+  const currency = (mapping.glCurrency ?? 'CAD').toUpperCase();
+
+  // ── Pass 1: collect all valid rows ────────────────────────────────────────
+  interface GlRow {
+    symbol: string;
+    buyDate: Date;
+    dateSold: Date;
+    quantity: number;
+    acbTotal: number;
+    acbPerShare: number;
+    totalProceeds: number;
+    proceedsPerShare: number;
+  }
+  const rows: GlRow[] = [];
+
   for (let i = 0; i < data.rows.length; i++) {
     const row = data.rows[i];
     const rowNum = i + 2;
@@ -86,15 +101,9 @@ function mapGlToTransactions(
 
     const dateSold = parseDate(dateSoldStr);
     if (!dateSold) {
-      if (dateSoldStr.toLowerCase() === 'summary' || dateSoldStr === '') continue; // Graceful skip for summary rows
+      if (dateSoldStr.toLowerCase() === 'summary' || dateSoldStr === '') continue;
       errors.push({ row: rowNum, field: 'dateSold', value: dateSoldStr, message: 'Invalid Date Sold' });
       continue;
-    }
-
-    let buyDate = dateSold;
-    if (mapping.dateAcquired !== undefined) {
-      const parsed = parseDate(row[mapping.dateAcquired] ?? '');
-      if (parsed) buyDate = parsed;
     }
 
     const quantity = Math.abs(parseNumber(row[mapping.quantity] ?? '0'));
@@ -107,63 +116,71 @@ function mapGlToTransactions(
     const acbTotal = Math.abs(parseNumber(row[mapping.acbTotal!] ?? '0'));
     const proceedsPerShare = quantity > 0 ? totalProceeds / quantity : 0;
     const acbPerShare = quantity > 0 ? acbTotal / quantity : 0;
-    const currency = (mapping.glCurrency ?? 'CAD').toUpperCase();
     const finalSymbol = mapping.symbol !== undefined && mapping.symbol >= 0 ? (row[mapping.symbol] ?? 'EQUITY').trim() || 'EQUITY' : 'EQUITY';
 
-    // Synthesize a BUY at the acquisition date so the engine builds ACB correctly
+    let buyDate: Date;
     if (mapping.dateAcquired !== undefined && mapping.dateAcquired >= 0) {
       const dateAcquiredStr = (row[mapping.dateAcquired] ?? '').trim();
-      const buyDate = parseDate(dateAcquiredStr) || dateSold;
-
-      transactions.push({
-        id: crypto.randomUUID(),
-        tradeDate: buyDate,
-        settlementDate: addBusinessDays(buyDate, 1),
-        action: 'BUY',
-        symbol: finalSymbol,
-        quantity,
-        pricePerShare: acbPerShare,
-        pricePerShareCAD: acbPerShare, // updated by FX conversion if non-CAD
-        commission: 0,
-        currency,
-        fxRate: 1,
-        totalCAD: acbTotal,
-      });
+      buyDate = parseDate(dateAcquiredStr) || dateSold;
     } else {
-      // If no valid acquisition date is mapped, synthesize a BUY on the same date via an earlier transaction id
-      const buyDate = dateSold;
-
-      transactions.push({
-        id: crypto.randomUUID(),
-        tradeDate: buyDate,
-        settlementDate: addBusinessDays(buyDate, 1),
-        action: 'BUY',
-        symbol: finalSymbol,
-        quantity,
-        pricePerShare: acbPerShare,
-        pricePerShareCAD: acbPerShare, // updated by FX conversion if non-CAD
-        commission: 0,
-        currency,
-        fxRate: 1,
-        totalCAD: acbTotal,
-      });
+      buyDate = dateSold;
     }
 
-    // Synthesize a SELL at the sale date
+    rows.push({ symbol: finalSymbol, buyDate, dateSold, quantity, acbTotal, acbPerShare, totalProceeds, proceedsPerShare });
+  }
+
+  // ── Pass 2: aggregate BUYs by (symbol, acquisitionDate) ───────────────────
+  // Multiple G&L rows can reference the same acquisition event (e.g. an RSU
+  // vest of 165 shares sold across 2 lots). We aggregate into a single BUY
+  // so the engine gets the real acquisition history, not per-lot fragments.
+  const buyMap = new Map<string, { symbol: string; date: Date; totalQty: number; totalCost: number }>();
+
+  for (const r of rows) {
+    const key = `${r.symbol}|${r.buyDate.getTime()}`;
+    const existing = buyMap.get(key);
+    if (existing) {
+      existing.totalQty += r.quantity;
+      existing.totalCost += r.acbTotal;
+    } else {
+      buyMap.set(key, { symbol: r.symbol, date: r.buyDate, totalQty: r.quantity, totalCost: r.acbTotal });
+    }
+  }
+
+  // Emit aggregated BUY transactions
+  for (const buy of buyMap.values()) {
+    const pricePerShare = buy.totalQty > 0 ? buy.totalCost / buy.totalQty : 0;
     transactions.push({
       id: crypto.randomUUID(),
-      tradeDate: dateSold,
-      settlementDate: addBusinessDays(dateSold, 1),
-      action: 'SELL',
-      symbol: finalSymbol,
-      quantity,
-      pricePerShare: proceedsPerShare,
-      pricePerShareCAD: proceedsPerShare, // updated by FX conversion if non-CAD
+      tradeDate: buy.date,
+      settlementDate: addBusinessDays(buy.date, 1),
+      action: 'BUY',
+      symbol: buy.symbol,
+      quantity: buy.totalQty,
+      pricePerShare,
+      pricePerShareCAD: pricePerShare,
       commission: 0,
       currency,
       fxRate: 1,
-      totalCAD: totalProceeds,
-      glOriginalAcb: acbTotal,
+      totalCAD: buy.totalCost,
+    });
+  }
+
+  // ── Pass 3: emit SELL transactions (one per G&L row) ──────────────────────
+  for (const r of rows) {
+    transactions.push({
+      id: crypto.randomUUID(),
+      tradeDate: r.dateSold,
+      settlementDate: addBusinessDays(r.dateSold, 1),
+      action: 'SELL',
+      symbol: r.symbol,
+      quantity: r.quantity,
+      pricePerShare: r.proceedsPerShare,
+      pricePerShareCAD: r.proceedsPerShare,
+      commission: 0,
+      currency,
+      fxRate: 1,
+      totalCAD: r.totalProceeds,
+      glOriginalAcb: r.acbTotal,
     });
   }
 
