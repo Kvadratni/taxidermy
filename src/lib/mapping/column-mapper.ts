@@ -59,6 +59,14 @@ export interface MappingError {
   message: string;
 }
 
+function shouldIgnoreUnsupportedAction(rawAction: string, mapping: ColumnMapping): boolean {
+  if (!rawAction) return false;
+  // Questrade activity exports contain many non-ACB rows (DIV/DEP/FXT/etc.).
+  // Once the file is detected as total-mode, those unsupported codes should be
+  // skipped rather than surfaced as mapping failures.
+  return mapping.forceTotal === true;
+}
+
 function mapGlToTransactions(
   data: RawImportData,
   mapping: ColumnMapping
@@ -340,23 +348,28 @@ export function mapToTransactions(
       continue;
     }
 
-    // Parse action
-    let action: TransactionAction | null = null;
-    if (mapping.action !== undefined && mapping.action >= 0) {
-      action = parseAction(row[mapping.action] ?? '');
-    }
-
-    // For IBKR: determine action from quantity sign
     const rawQty = parseNumber(row[mapping.quantity] ?? '0');
-    if (!action && rawQty !== 0) {
+    const rawActionValue = mapping.action !== undefined && mapping.action >= 0
+      ? (row[mapping.action] ?? '').trim()
+      : '';
+    const hasExplicitActionColumn = mapping.action !== undefined && mapping.action >= 0;
+
+    // Parse action
+    let action: TransactionAction | null = rawActionValue ? parseAction(rawActionValue) : null;
+
+    // For IBKR-like files with no action column: determine action from quantity sign
+    if (!action && !hasExplicitActionColumn && rawQty !== 0) {
       action = rawQty > 0 ? 'BUY' : 'SELL';
     }
 
     if (!action) {
+      if (shouldIgnoreUnsupportedAction(rawActionValue, mapping)) {
+        continue;
+      }
       errors.push({
         row: rowNum,
         field: 'action',
-        value: mapping.action !== undefined ? (row[mapping.action] ?? '') : '',
+        value: hasExplicitActionColumn ? rawActionValue : '',
         message: 'Could not determine Buy/Sell action',
       });
       continue;
@@ -437,4 +450,3 @@ export function mapToTransactions(
 
   return { transactions, errors };
 }
-
