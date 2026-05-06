@@ -400,7 +400,8 @@ export function mapToTransactions(
       settlementDate,
       action,
       symbol,
-      quantity,
+      quantity: action === 'SPLIT' ? 0 : quantity,
+      splitRatio: action === 'SPLIT' ? quantity : undefined,
       pricePerShare: price,
       pricePerShareCAD: price, // Will be updated by FX conversion
       commission,

@@ -21,8 +21,10 @@ export function validateTransactions(transactions: Transaction[]): ValidationIss
       next = current + txn.quantity;
     } else if (txn.action === 'SELL') {
       next = current - txn.quantity;
+    } else if (txn.action === 'SPLIT') {
+      next = current * (txn.splitRatio ?? 2);
     } else {
-      next = current; // SPLIT/ROC don't change share count for this check
+      next = current; // ROC doesn't change share count for this check
     }
 
     if (next < -0.001) { // small tolerance for floating point
