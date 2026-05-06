@@ -33,9 +33,12 @@ function parseDate(value: string): Date | null {
 function parseAction(value: string): TransactionAction | null {
   const normalized = value.trim().toLowerCase();
   if (['buy', 'purchase', 'bought'].includes(normalized)) return 'BUY';
+  if (['buy_total', 'buy total'].includes(normalized)) return 'BUY_TOTAL';
   if (['sell', 'sale', 'sold'].includes(normalized)) return 'SELL';
+  if (['sell_total', 'sell total'].includes(normalized)) return 'SELL_TOTAL';
   if (['split', 'stock split'].includes(normalized)) return 'SPLIT';
   if (['roc', 'return of capital'].includes(normalized)) return 'ROC';
+  if (['roc_total', 'roc total'].includes(normalized)) return 'ROC_TOTAL';
   return null;
 }
 
@@ -360,7 +363,8 @@ export function mapToTransactions(
     }
 
     // Skip non-buy/sell for now (dividends, etc.)
-    if (action !== 'BUY' && action !== 'SELL' && action !== 'SPLIT' && action !== 'ROC') {
+    const supportedActions: TransactionAction[] = ['BUY', 'BUY_TOTAL', 'SELL', 'SELL_TOTAL', 'SPLIT', 'ROC', 'ROC_TOTAL'];
+    if (!supportedActions.includes(action)) {
       continue;
     }
 
@@ -394,19 +398,34 @@ export function mapToTransactions(
       settlementDate = addBusinessDays(date, 1);
     }
 
+    const isTotalAction = action === 'BUY_TOTAL' || action === 'SELL_TOTAL' || action === 'ROC_TOTAL';
+    const effectivePrice = isTotalAction ? (quantity > 0 ? price / quantity : price) : price;
+
+    let totalCAD: number;
+    if (action === 'BUY_TOTAL') {
+      totalCAD = price + commission;
+    } else if (action === 'SELL_TOTAL') {
+      totalCAD = price - commission;
+    } else if (action === 'ROC_TOTAL') {
+      totalCAD = -price;
+    } else {
+      totalCAD = quantity * price + (action === 'BUY' ? commission : -commission);
+    }
+
     transactions.push({
       id: crypto.randomUUID(),
       tradeDate: date,
       settlementDate,
       action,
       symbol,
-      quantity,
-      pricePerShare: price,
-      pricePerShareCAD: price, // Will be updated by FX conversion
+      quantity: action === 'SPLIT' ? 0 : quantity,
+      splitRatio: action === 'SPLIT' ? quantity : undefined,
+      pricePerShare: effectivePrice,
+      pricePerShareCAD: effectivePrice, // Will be updated by FX conversion
       commission,
       currency,
       fxRate: 1,
-      totalCAD: quantity * price + (action === 'BUY' ? commission : -commission),
+      totalCAD,
     });
   }
 

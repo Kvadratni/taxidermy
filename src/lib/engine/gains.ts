@@ -1,5 +1,13 @@
 import { Transaction, DispositionResult, SuperficialLossDetail, AcbRecord } from '@/types';
-import { createAcbState, processBuy, processSell, processSplit, processRoc, AcbState } from './acb';
+import {
+  createAcbState,
+  processBuy,
+  processSell,
+  processSplit,
+  processRoc,
+  processRocTotal,
+  AcbState,
+} from './acb';
 import { checkSuperficialLoss } from './superficial-loss';
 
 export interface CalculationResult {
@@ -23,9 +31,11 @@ export function calculateGains(transactions: Transaction[]): CalculationResult {
   for (const txn of sorted) {
     switch (txn.action) {
       case 'BUY':
+      case 'BUY_TOTAL':
         processBuy(state, txn);
         break;
-      case 'SELL': {
+      case 'SELL':
+      case 'SELL_TOTAL': {
         const result = processSell(state, txn);
         
         // Inline superficial loss detection and adjustment
@@ -44,6 +54,9 @@ export function calculateGains(transactions: Transaction[]): CalculationResult {
         break;
       case 'ROC':
         processRoc(state, txn);
+        break;
+      case 'ROC_TOTAL':
+        processRocTotal(state, txn);
         break;
     }
   }

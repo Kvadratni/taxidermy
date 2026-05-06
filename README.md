@@ -110,6 +110,11 @@ The engine calculates:
 - **PDF** — Complete multi-page report: Tax Summary, Holdings Chart, Schedule 3, Superficial Loss Details, Securities Holdings, All Transactions
 - **Excel** — Three-sheet workbook covering everything, with an "All Years" option that creates a separate Schedule 3 sheet per tax year
 - **CSV** — Schedule 3 dispositions for quick import elsewhere
+ 
+ ### 5. Total-based Transactions
+ If your data provides the **total dollar amount** of a trade instead of the per-share price, use these actions:
+ - **Buy Total / Sell Total**: The "Price" column is treated as the total amount (excluding commission). Per-share price is derived automatically. Keywords: `buy_total`, `buy total`, `sell_total`, `sell total`.
+ - **ROC Total**: The "Price" column is treated as the total dollar amount to be deducted from the position's ACB. Keywords: `roc_total`, `roc total`.
 
 ## Tech Stack
 
