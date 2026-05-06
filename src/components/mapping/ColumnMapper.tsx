@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { ColumnMapping, ImportedFile, Transaction, ValidationIssue } from '@/types';
 import { suggestMapping } from '@/lib/mapping/auto-detect';
+import { buildColumnMapping } from '@/lib/mapping/build-mapping';
 import { mapToTransactions, MappingError } from '@/lib/mapping/column-mapper';
 import { fetchFxRates, lookupRate, getCachedRates } from '@/lib/engine/fx';
 import { calculateGains } from '@/lib/engine/gains';
@@ -355,49 +356,6 @@ export default function ColumnMapper() {
     updateFileCurrency(fileId, currency);
   }, [updateFileCurrency]);
 
-  // Build ColumnMapping from assignments
-  const buildMapping = useCallback((assignments: Record<number, string>, isGl: boolean, currency: string): ColumnMapping | null => {
-    const reverse: Record<string, number> = {};
-    for (const [colIdx, field] of Object.entries(assignments)) {
-      if (field) reverse[field] = parseInt(colIdx);
-    }
-
-    if (isGl) {
-      if (reverse.dateSold === undefined || reverse.totalProceeds === undefined ||
-          reverse.acbTotal === undefined || reverse.quantity === undefined) return null;
-      return {
-        date: reverse.dateSold,
-        quantity: reverse.quantity,
-        glMode: true,
-        glCurrency: currency,
-        dateSold: reverse.dateSold,
-        dateAcquired: reverse.dateAcquired,
-        totalProceeds: reverse.totalProceeds,
-        acbTotal: reverse.acbTotal,
-        symbol: reverse.symbol,
-      };
-    }
-
-    // Need at least one date column and quantity
-    if (reverse.date === undefined && reverse.settlementDate === undefined) return null;
-    if (reverse.quantity === undefined) return null;
-
-    // If only one date column is mapped, use it as settlement date (primary)
-    const hasSettlement = reverse.settlementDate !== undefined;
-    const hasTradeDate = reverse.date !== undefined;
-
-    return {
-      date: hasTradeDate ? reverse.date! : reverse.settlementDate!,
-      quantity: reverse.quantity,
-      action: reverse.action,
-      symbol: reverse.symbol,
-      price: reverse.price,
-      commission: reverse.commission,
-      currency: reverse.currency,
-      settlementDate: hasSettlement ? reverse.settlementDate : undefined,
-    };
-  }, []);
-
   const isFileValid = useCallback((fileId: string) => {
     const file = importedFiles.find((f) => f.id === fileId);
     if (!file) return false;
@@ -438,7 +396,12 @@ export default function ColumnMapper() {
         } else {
           const state = fileMappingState.get(file.id);
           if (!state) continue;
-          mapping = buildMapping(state.assignments, state.isGl, state.currency);
+          mapping = buildColumnMapping(state.assignments, {
+            isGl: state.isGl,
+            currency: state.currency,
+            detectedFormat: file.detectedFormat,
+            existingMapping: file.mapping,
+          });
         }
 
         if (!mapping) {
