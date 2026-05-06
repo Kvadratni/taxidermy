@@ -363,7 +363,8 @@ export function mapToTransactions(
     }
 
     // Skip non-buy/sell for now (dividends, etc.)
-    if (action !== 'BUY' && action !== 'SELL' && action !== 'SPLIT' && action !== 'ROC') {
+    const supportedActions: TransactionAction[] = ['BUY', 'BUY_TOTAL', 'SELL', 'SELL_TOTAL', 'SPLIT', 'ROC', 'ROC_TOTAL'];
+    if (!supportedActions.includes(action)) {
       continue;
     }
 
@@ -417,7 +418,8 @@ export function mapToTransactions(
       settlementDate,
       action,
       symbol,
-      quantity,
+      quantity: action === 'SPLIT' ? 0 : quantity,
+      splitRatio: action === 'SPLIT' ? quantity : undefined,
       pricePerShare: effectivePrice,
       pricePerShareCAD: effectivePrice, // Will be updated by FX conversion
       commission,
