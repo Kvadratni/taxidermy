@@ -51,7 +51,6 @@ function buildMappingForFormat(
       const price = headerIndex(headers, 'Price');
       const commission = headerIndex(headers, 'Commission');
       const currency = headerIndex(headers, 'Currency');
-      const totalAmount = headerIndex(headers, 'Total Amount');
 
       if (date < 0 || action < 0 || symbol < 0 || quantity < 0) return null;
 
