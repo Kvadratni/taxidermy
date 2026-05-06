@@ -535,8 +535,16 @@ export default function ColumnMapper() {
             }
             txn.pricePerShareCAD = txn.pricePerShare * txn.fxRate;
             txn.commission = txn.commission * txn.fxRate;
-            txn.totalCAD = txn.quantity * txn.pricePerShareCAD +
-              (txn.action === 'BUY' ? txn.commission : -txn.commission);
+
+            const isBuy = txn.action === 'BUY' || txn.action === 'BUY_TOTAL';
+            const isRoc = txn.action === 'ROC' || txn.action === 'ROC_TOTAL';
+
+            if (txn.action === 'ROC_TOTAL') {
+              txn.totalCAD = -txn.pricePerShareCAD;
+            } else {
+              txn.totalCAD = txn.quantity * txn.pricePerShareCAD +
+                (isBuy ? txn.commission : -txn.commission);
+            }
           }
         }
       }
@@ -727,8 +735,16 @@ export default function ColumnMapper() {
                       <span
                         className="px-2 py-0.5 rounded text-xs font-semibold"
                         style={{
-                          background: txn.action === 'BUY' ? `rgba(var(--color-primary-fixed-raw), 0.15)` : `rgba(var(--color-tertiary-raw), 0.1)`,
-                          color: txn.action === 'BUY' ? 'var(--color-primary)' : 'var(--color-loss)'
+                          background: (txn.action === 'BUY' || txn.action === 'BUY_TOTAL') 
+                            ? `rgba(var(--color-primary-fixed-raw), 0.15)` 
+                            : (txn.action === 'SELL' || txn.action === 'SELL_TOTAL')
+                              ? `rgba(var(--color-tertiary-raw), 0.1)`
+                              : `rgba(var(--color-secondary-container-raw), 0.3)`,
+                          color: (txn.action === 'BUY' || txn.action === 'BUY_TOTAL') 
+                            ? 'var(--color-primary)' 
+                            : (txn.action === 'SELL' || txn.action === 'SELL_TOTAL')
+                              ? 'var(--color-loss)'
+                              : 'var(--color-on-surface-variant)'
                         }}
                       >
                         {txn.action}
