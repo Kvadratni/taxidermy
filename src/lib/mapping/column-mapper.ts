@@ -33,9 +33,12 @@ function parseDate(value: string): Date | null {
 function parseAction(value: string): TransactionAction | null {
   const normalized = value.trim().toLowerCase();
   if (['buy', 'purchase', 'bought'].includes(normalized)) return 'BUY';
+  if (['buy_total', 'buy total', 'rei', 'drip', 'reinvestment'].includes(normalized)) return 'BUY_TOTAL';
   if (['sell', 'sale', 'sold'].includes(normalized)) return 'SELL';
+  if (['sell_total', 'sell total'].includes(normalized)) return 'SELL_TOTAL';
   if (['split', 'stock split'].includes(normalized)) return 'SPLIT';
   if (['roc', 'return of capital'].includes(normalized)) return 'ROC';
+  if (['roc_total', 'roc total'].includes(normalized)) return 'ROC_TOTAL';
   return null;
 }
 
@@ -54,6 +57,26 @@ export interface MappingError {
   field: string;
   value: string;
   message: string;
+}
+
+function shouldIgnoreUnsupportedAction(rawAction: string, mapping: ColumnMapping): boolean {
+  if (!rawAction) return false;
+  // Questrade activity exports contain many non-ACB rows (DIV/DEP/FXT/etc.).
+  // Once the file is detected as total-mode, those unsupported codes should be
+  // skipped rather than surfaced as mapping failures.
+  return mapping.forceTotal === true;
+}
+
+function shouldIgnoreBlankQuestradeCashRow(
+  rawAction: string,
+  rawQty: number,
+  mapping: ColumnMapping,
+  hasExplicitActionColumn: boolean
+): boolean {
+  // In raw Questrade activity exports, dividend/interest cash rows often have
+  // an explicit Action column that is blank and a zero quantity. These are not
+  // security trades and should be ignored instead of reported as action errors.
+  return mapping.forceTotal === true && hasExplicitActionColumn && rawAction === '' && rawQty === 0;
 }
 
 function mapGlToTransactions(
@@ -337,30 +360,45 @@ export function mapToTransactions(
       continue;
     }
 
-    // Parse action
-    let action: TransactionAction | null = null;
-    if (mapping.action !== undefined && mapping.action >= 0) {
-      action = parseAction(row[mapping.action] ?? '');
-    }
-
-    // For IBKR: determine action from quantity sign
     const rawQty = parseNumber(row[mapping.quantity] ?? '0');
-    if (!action && rawQty !== 0) {
+    const rawActionValue = mapping.action !== undefined && mapping.action >= 0
+      ? (row[mapping.action] ?? '').trim()
+      : '';
+    const hasExplicitActionColumn = mapping.action !== undefined && mapping.action >= 0;
+
+    // Parse action
+    let action: TransactionAction | null = rawActionValue ? parseAction(rawActionValue) : null;
+
+    // For IBKR-like files with no action column: determine action from quantity sign
+    if (!action && !hasExplicitActionColumn && rawQty !== 0) {
       action = rawQty > 0 ? 'BUY' : 'SELL';
     }
 
     if (!action) {
+      if (shouldIgnoreBlankQuestradeCashRow(rawActionValue, rawQty, mapping, hasExplicitActionColumn)) {
+        continue;
+      }
+      if (shouldIgnoreUnsupportedAction(rawActionValue, mapping)) {
+        continue;
+      }
       errors.push({
         row: rowNum,
         field: 'action',
-        value: mapping.action !== undefined ? (row[mapping.action] ?? '') : '',
+        value: hasExplicitActionColumn ? rawActionValue : '',
         message: 'Could not determine Buy/Sell action',
       });
       continue;
     }
 
+    // Upgrade to TOTAL actions if forced by the brokerage detector (e.g. Questrade)
+    if (mapping.forceTotal) {
+      if (action === 'BUY') action = 'BUY_TOTAL';
+      if (action === 'SELL') action = 'SELL_TOTAL';
+    }
+
     // Skip non-buy/sell for now (dividends, etc.)
-    if (action !== 'BUY' && action !== 'SELL' && action !== 'SPLIT' && action !== 'ROC') {
+    const supportedActions: TransactionAction[] = ['BUY', 'BUY_TOTAL', 'SELL', 'SELL_TOTAL', 'SPLIT', 'ROC', 'ROC_TOTAL'];
+    if (!supportedActions.includes(action)) {
       continue;
     }
 
@@ -394,22 +432,36 @@ export function mapToTransactions(
       settlementDate = addBusinessDays(date, 1);
     }
 
+    const isTotalAction = action === 'BUY_TOTAL' || action === 'SELL_TOTAL' || action === 'ROC_TOTAL';
+    const effectivePrice = isTotalAction ? (quantity > 0 ? price / quantity : price) : price;
+
+    let totalCAD: number;
+    if (action === 'BUY_TOTAL') {
+      totalCAD = price + commission;
+    } else if (action === 'SELL_TOTAL') {
+      totalCAD = price - commission;
+    } else if (action === 'ROC_TOTAL') {
+      totalCAD = -price;
+    } else {
+      totalCAD = quantity * price + (action === 'BUY' ? commission : -commission);
+    }
+
     transactions.push({
       id: crypto.randomUUID(),
       tradeDate: date,
       settlementDate,
       action,
       symbol,
-      quantity,
-      pricePerShare: price,
-      pricePerShareCAD: price, // Will be updated by FX conversion
+      quantity: action === 'SPLIT' ? 0 : quantity,
+      splitRatio: action === 'SPLIT' ? quantity : undefined,
+      pricePerShare: effectivePrice,
+      pricePerShareCAD: effectivePrice, // Will be updated by FX conversion
       commission,
       currency,
       fxRate: 1,
-      totalCAD: quantity * price + (action === 'BUY' ? commission : -commission),
+      totalCAD,
     });
   }
 
   return { transactions, errors };
 }
-

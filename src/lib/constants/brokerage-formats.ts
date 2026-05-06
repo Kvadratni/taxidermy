@@ -20,7 +20,6 @@ export const BROKERAGE_FORMATS: BrokerageFormat[] = [
       price: -1,
       commission: -1,
       currency: -1,
-      totalAmount: -1,
     },
   },
   {
