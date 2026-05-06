@@ -98,6 +98,9 @@ function computeSharesHeldAt(
       case 'SPLIT':
         shares *= txn.splitRatio ?? 2;
         break;
+      case 'SPLIT_QUANTITY':
+        shares += txn.quantity;
+        break;
     }
   }
   return Math.max(0, Math.round(shares * 1000000) / 1000000);

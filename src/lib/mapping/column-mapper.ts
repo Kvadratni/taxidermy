@@ -35,6 +35,7 @@ function parseAction(value: string): TransactionAction | null {
   if (['buy', 'purchase', 'bought'].includes(normalized)) return 'BUY';
   if (['sell', 'sale', 'sold'].includes(normalized)) return 'SELL';
   if (['split', 'stock split'].includes(normalized)) return 'SPLIT';
+  if (['split_qty', 'split quantity', 'split qty'].includes(normalized)) return 'SPLIT_QUANTITY';
   if (['roc', 'return of capital'].includes(normalized)) return 'ROC';
   return null;
 }

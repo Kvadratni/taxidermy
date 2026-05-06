@@ -111,6 +111,12 @@ The engine calculates:
 - **Excel** — Three-sheet workbook covering everything, with an "All Years" option that creates a separate Schedule 3 sheet per tax year
 - **CSV** — Schedule 3 dispositions for quick import elsewhere
 
+### 5. Handling Stock Splits
+For stock splits defined by a share delta (e.g. +100 shares) rather than a ratio, use the **Split Quantity** action.
+- Map the share delta to the **Quantity** column.
+- Keywords: `split_qty`, `split quantity`, `split qty`.
+
+The engine automatically adjusts your share balance and per-share ACB while keeping the total cost basis constant.
 ## Tech Stack
 
 - **Next.js 16** with App Router and static export (`output: "export"`)

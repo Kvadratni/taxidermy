@@ -73,6 +73,17 @@ export function processSplit(state: AcbState, txn: Transaction): void {
   setAcbRecord(state, rec);
 }
 
+/**
+ * Handle a split defined by a quantity delta (e.g. +100 shares) rather than a ratio.
+ * Total cost basis remains unchanged.
+ */
+export function processSplitQuantity(state: AcbState, txn: Transaction): void {
+  const rec = getAcbRecord(state, txn.symbol);
+  rec.totalShares += txn.quantity;
+  rec.acbPerShare = rec.totalShares > 0 ? rec.totalAcb / rec.totalShares : 0;
+  setAcbRecord(state, rec);
+}
+
 export function processRoc(state: AcbState, txn: Transaction): void {
   const rec = getAcbRecord(state, txn.symbol);
   const rocAmount = (txn.rocPerShare ?? 0) * rec.totalShares;

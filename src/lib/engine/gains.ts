@@ -1,5 +1,5 @@
 import { Transaction, DispositionResult, SuperficialLossDetail, AcbRecord } from '@/types';
-import { createAcbState, processBuy, processSell, processSplit, processRoc, AcbState } from './acb';
+import { createAcbState, processBuy, processSell, processSplit, processSplitQuantity, processRoc, AcbState } from './acb';
 import { checkSuperficialLoss } from './superficial-loss';
 
 export interface CalculationResult {
@@ -41,6 +41,9 @@ export function calculateGains(transactions: Transaction[]): CalculationResult {
       }
       case 'SPLIT':
         processSplit(state, txn);
+        break;
+      case 'SPLIT_QUANTITY':
+        processSplitQuantity(state, txn);
         break;
       case 'ROC':
         processRoc(state, txn);
