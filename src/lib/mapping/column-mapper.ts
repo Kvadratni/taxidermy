@@ -67,6 +67,18 @@ function shouldIgnoreUnsupportedAction(rawAction: string, mapping: ColumnMapping
   return mapping.forceTotal === true;
 }
 
+function shouldIgnoreBlankQuestradeCashRow(
+  rawAction: string,
+  rawQty: number,
+  mapping: ColumnMapping,
+  hasExplicitActionColumn: boolean
+): boolean {
+  // In raw Questrade activity exports, dividend/interest cash rows often have
+  // an explicit Action column that is blank and a zero quantity. These are not
+  // security trades and should be ignored instead of reported as action errors.
+  return mapping.forceTotal === true && hasExplicitActionColumn && rawAction === '' && rawQty === 0;
+}
+
 function mapGlToTransactions(
   data: RawImportData,
   mapping: ColumnMapping
@@ -363,6 +375,9 @@ export function mapToTransactions(
     }
 
     if (!action) {
+      if (shouldIgnoreBlankQuestradeCashRow(rawActionValue, rawQty, mapping, hasExplicitActionColumn)) {
+        continue;
+      }
       if (shouldIgnoreUnsupportedAction(rawActionValue, mapping)) {
         continue;
       }

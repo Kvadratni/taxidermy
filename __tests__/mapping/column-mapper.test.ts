@@ -27,6 +27,40 @@ describe('mapToTransactions', () => {
     expect(transactions.map((txn) => txn.action)).toEqual(['BUY_TOTAL', 'BUY_TOTAL']);
   });
 
+  it('ignores blank-action Questrade cash rows with zero quantity', () => {
+    const data: RawImportData = {
+      headers: [
+        'Transaction Date',
+        'Settlement Date',
+        'Action',
+        'Symbol',
+        'Description',
+        'Quantity',
+        'Price',
+        'Gross Amount',
+        'Commission',
+        'Net Amount',
+        'Currency',
+        'Activity Type',
+      ],
+      rows: [
+        ['2026-04-16 12:00:00 AM', '2026-04-16 12:00:00 AM', '', '', 'Interest charge', '0.00000', '0.00000000', '0.00', '0.00', '-155.80', 'USD', 'Interest'],
+        ['2026-04-15 12:00:00 AM', '2026-04-15 12:00:00 AM', '', 'BAM', 'Cash dividend', '0.00000', '0.00000000', '0.00', '0.00', '120.00', 'CAD', 'Dividends'],
+        ['2026-04-14 12:00:00 AM', '2026-04-16 12:00:00 AM', 'Buy', 'AAPL', 'Trade', '10.00000', '0.00000000', '0.00', '0.00', '-1000.00', 'USD', 'Trades'],
+      ],
+      source: 'csv',
+    };
+
+    const detection = detectFormat(data.headers);
+    expect(detection?.format).toBe('Questrade');
+
+    const { transactions, errors } = mapToTransactions(data, detection!.mapping);
+
+    expect(errors).toEqual([]);
+    expect(transactions).toHaveLength(1);
+    expect(transactions[0].action).toBe('BUY_TOTAL');
+  });
+
   it('keeps surfacing unknown actions for non-Questrade mappings', () => {
     const data: RawImportData = {
       headers: ['Date', 'Action', 'Symbol', 'Quantity', 'Price', 'Currency'],
