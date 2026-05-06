@@ -21,6 +21,8 @@ export function validateTransactions(transactions: Transaction[]): ValidationIss
       next = current + txn.quantity;
     } else if (txn.action === 'SELL') {
       next = current - txn.quantity;
+    } else if (txn.action === 'SPLIT_QUANTITY') {
+      next = current + txn.quantity;
     } else {
       next = current; // SPLIT/ROC don't change share count for this check
     }
