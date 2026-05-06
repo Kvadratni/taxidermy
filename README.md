@@ -111,6 +111,12 @@ The engine calculates:
 - **Excel** — Three-sheet workbook covering everything, with an "All Years" option that creates a separate Schedule 3 sheet per tax year
 - **CSV** — Schedule 3 dispositions for quick import elsewhere
 
+### 5. Handling Stock Splits
+Stock splits (forward or reverse) are handled using the `SPLIT` action.
+- Map your CSV's "Action" column to **Split**.
+- Map your multiplier ratio to the **Quantity** column (e.g., `2` for a 2-for-1 forward split, or `0.25` for a 1-for-4 reverse split).
+- The engine will automatically adjust your share balance and per-share ACB while keeping the total cost basis constant.
+
 ## Tech Stack
 
 - **Next.js 16** with App Router and static export (`output: "export"`)
