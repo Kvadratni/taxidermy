@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { ColumnMapping, ImportedFile, Transaction, ValidationIssue } from '@/types';
 import { suggestMapping } from '@/lib/mapping/auto-detect';
+import { buildColumnMapping } from '@/lib/mapping/build-mapping';
 import { mapToTransactions, MappingError } from '@/lib/mapping/column-mapper';
 import { fetchFxRates, lookupRate, getCachedRates } from '@/lib/engine/fx';
 import { calculateGains } from '@/lib/engine/gains';
@@ -84,10 +85,9 @@ const FIELD_OPTIONS = [
   { value: 'action', label: 'Action (Buy/Sell)' },
   { value: 'symbol', label: 'Symbol / Ticker' },
   { value: 'quantity', label: 'Quantity' },
-  { value: 'price', label: 'Price per Share' },
+  { value: 'price', label: 'Price / Amount' },
   { value: 'commission', label: 'Commission / Fees' },
   { value: 'currency', label: 'Currency' },
-  { value: 'totalAmount', label: 'Total Amount' },
   // G&L report fields
   { value: 'dateSold', label: 'Date Sold (G&L)' },
   { value: 'dateAcquired', label: 'Date Acquired (G&L)' },
@@ -356,50 +356,6 @@ export default function ColumnMapper() {
     updateFileCurrency(fileId, currency);
   }, [updateFileCurrency]);
 
-  // Build ColumnMapping from assignments
-  const buildMapping = useCallback((assignments: Record<number, string>, isGl: boolean, currency: string): ColumnMapping | null => {
-    const reverse: Record<string, number> = {};
-    for (const [colIdx, field] of Object.entries(assignments)) {
-      if (field) reverse[field] = parseInt(colIdx);
-    }
-
-    if (isGl) {
-      if (reverse.dateSold === undefined || reverse.totalProceeds === undefined ||
-          reverse.acbTotal === undefined || reverse.quantity === undefined) return null;
-      return {
-        date: reverse.dateSold,
-        quantity: reverse.quantity,
-        glMode: true,
-        glCurrency: currency,
-        dateSold: reverse.dateSold,
-        dateAcquired: reverse.dateAcquired,
-        totalProceeds: reverse.totalProceeds,
-        acbTotal: reverse.acbTotal,
-        symbol: reverse.symbol,
-      };
-    }
-
-    // Need at least one date column and quantity
-    if (reverse.date === undefined && reverse.settlementDate === undefined) return null;
-    if (reverse.quantity === undefined) return null;
-
-    // If only one date column is mapped, use it as settlement date (primary)
-    const hasSettlement = reverse.settlementDate !== undefined;
-    const hasTradeDate = reverse.date !== undefined;
-
-    return {
-      date: hasTradeDate ? reverse.date! : reverse.settlementDate!,
-      quantity: reverse.quantity,
-      action: reverse.action,
-      symbol: reverse.symbol,
-      price: reverse.price,
-      commission: reverse.commission,
-      currency: reverse.currency,
-      settlementDate: hasSettlement ? reverse.settlementDate : undefined,
-      totalAmount: reverse.totalAmount,
-    };
-  }, []);
-
   const isFileValid = useCallback((fileId: string) => {
     const file = importedFiles.find((f) => f.id === fileId);
     if (!file) return false;
@@ -440,7 +396,12 @@ export default function ColumnMapper() {
         } else {
           const state = fileMappingState.get(file.id);
           if (!state) continue;
-          mapping = buildMapping(state.assignments, state.isGl, state.currency);
+          mapping = buildColumnMapping(state.assignments, {
+            isGl: state.isGl,
+            currency: state.currency,
+            detectedFormat: file.detectedFormat,
+            existingMapping: file.mapping,
+          });
         }
 
         if (!mapping) {
@@ -535,8 +496,16 @@ export default function ColumnMapper() {
             }
             txn.pricePerShareCAD = txn.pricePerShare * txn.fxRate;
             txn.commission = txn.commission * txn.fxRate;
-            txn.totalCAD = txn.quantity * txn.pricePerShareCAD +
-              (txn.action === 'BUY' ? txn.commission : -txn.commission);
+
+            const isBuy = txn.action === 'BUY' || txn.action === 'BUY_TOTAL';
+            const isRoc = txn.action === 'ROC' || txn.action === 'ROC_TOTAL';
+
+            if (txn.action === 'ROC_TOTAL') {
+              txn.totalCAD = -txn.pricePerShareCAD;
+            } else {
+              txn.totalCAD = txn.quantity * txn.pricePerShareCAD +
+                (isBuy ? txn.commission : -txn.commission);
+            }
           }
         }
       }
@@ -727,8 +696,16 @@ export default function ColumnMapper() {
                       <span
                         className="px-2 py-0.5 rounded text-xs font-semibold"
                         style={{
-                          background: txn.action === 'BUY' ? `rgba(var(--color-primary-fixed-raw), 0.15)` : `rgba(var(--color-tertiary-raw), 0.1)`,
-                          color: txn.action === 'BUY' ? 'var(--color-primary)' : 'var(--color-loss)'
+                          background: (txn.action === 'BUY' || txn.action === 'BUY_TOTAL') 
+                            ? `rgba(var(--color-primary-fixed-raw), 0.15)` 
+                            : (txn.action === 'SELL' || txn.action === 'SELL_TOTAL')
+                              ? `rgba(var(--color-tertiary-raw), 0.1)`
+                              : `rgba(var(--color-secondary-container-raw), 0.3)`,
+                          color: (txn.action === 'BUY' || txn.action === 'BUY_TOTAL') 
+                            ? 'var(--color-primary)' 
+                            : (txn.action === 'SELL' || txn.action === 'SELL_TOTAL')
+                              ? 'var(--color-loss)'
+                              : 'var(--color-on-surface-variant)'
                         }}
                       >
                         {txn.action}

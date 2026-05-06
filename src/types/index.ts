@@ -1,4 +1,4 @@
-export type TransactionAction = 'BUY' | 'SELL' | 'SPLIT' | 'ROC';
+export type TransactionAction = 'BUY' | 'BUY_TOTAL' | 'SELL' | 'SELL_TOTAL' | 'SPLIT' | 'ROC' | 'ROC_TOTAL';
 
 export interface RawImportData {
   headers: string[];
@@ -15,9 +15,9 @@ export interface ColumnMapping {
   price?: number;
   commission?: number;
   currency?: number;
-  totalAmount?: number;
-  /** Explicit settlement date column (e.g. Questrade). Overrides `date` when present. */
   settlementDate?: number;
+  /** Force all Buy/Sell actions to be treated as _TOTAL actions (e.g. Questrade). */
+  forceTotal?: boolean;
   // G&L (Gains & Losses) report mode — pre-matched lots with no action/symbol columns
   glMode?: boolean;
   glCurrency?: string;

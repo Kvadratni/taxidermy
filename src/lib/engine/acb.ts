@@ -85,6 +85,20 @@ export function processRoc(state: AcbState, txn: Transaction): void {
   setAcbRecord(state, rec);
 }
 
+/**
+ * Handle Return of Capital defined as a total dollar amount for the whole position.
+ */
+export function processRocTotal(state: AcbState, txn: Transaction): void {
+  const rec = getAcbRecord(state, txn.symbol);
+  // In the mapper, we put the total amount into pricePerShareCAD for ROC_TOTAL
+  rec.totalAcb -= txn.pricePerShareCAD;
+  if (rec.totalAcb < 0) {
+    rec.totalAcb = 0;
+  }
+  rec.acbPerShare = rec.totalShares > 0 ? rec.totalAcb / rec.totalShares : 0;
+  setAcbRecord(state, rec);
+}
+
 export function addToAcb(state: AcbState, symbol: string, amount: number): void {
   const rec = getAcbRecord(state, symbol);
   rec.totalAcb += amount;
