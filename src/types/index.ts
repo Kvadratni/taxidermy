@@ -1,4 +1,4 @@
-export type TransactionAction = 'BUY' | 'SELL' | 'SPLIT' | 'ROC';
+export type TransactionAction = 'BUY' | 'BUY_TOTAL' | 'SELL' | 'SELL_TOTAL' | 'SPLIT' | 'ROC' | 'ROC_TOTAL';
 
 export interface RawImportData {
   headers: string[];

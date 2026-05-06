@@ -17,9 +17,9 @@ export function validateTransactions(transactions: Transaction[]): ValidationIss
     const current = balances.get(txn.symbol) || 0;
     let next: number;
 
-    if (txn.action === 'BUY') {
+    if (txn.action === 'BUY' || txn.action === 'BUY_TOTAL') {
       next = current + txn.quantity;
-    } else if (txn.action === 'SELL') {
+    } else if (txn.action === 'SELL' || txn.action === 'SELL_TOTAL') {
       next = current - txn.quantity;
     } else {
       next = current; // SPLIT/ROC don't change share count for this check
