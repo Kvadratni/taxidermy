@@ -84,10 +84,9 @@ const FIELD_OPTIONS = [
   { value: 'action', label: 'Action (Buy/Sell)' },
   { value: 'symbol', label: 'Symbol / Ticker' },
   { value: 'quantity', label: 'Quantity' },
-  { value: 'price', label: 'Price per Share' },
+  { value: 'price', label: 'Price / Amount' },
   { value: 'commission', label: 'Commission / Fees' },
   { value: 'currency', label: 'Currency' },
-  { value: 'totalAmount', label: 'Total Amount' },
   // G&L report fields
   { value: 'dateSold', label: 'Date Sold (G&L)' },
   { value: 'dateAcquired', label: 'Date Acquired (G&L)' },
@@ -396,7 +395,6 @@ export default function ColumnMapper() {
       commission: reverse.commission,
       currency: reverse.currency,
       settlementDate: hasSettlement ? reverse.settlementDate : undefined,
-      totalAmount: reverse.totalAmount,
     };
   }, []);
 

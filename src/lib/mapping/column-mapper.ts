@@ -33,7 +33,7 @@ function parseDate(value: string): Date | null {
 function parseAction(value: string): TransactionAction | null {
   const normalized = value.trim().toLowerCase();
   if (['buy', 'purchase', 'bought'].includes(normalized)) return 'BUY';
-  if (['buy_total', 'buy total'].includes(normalized)) return 'BUY_TOTAL';
+  if (['buy_total', 'buy total', 'rei', 'drip', 'reinvestment'].includes(normalized)) return 'BUY_TOTAL';
   if (['sell', 'sale', 'sold'].includes(normalized)) return 'SELL';
   if (['sell_total', 'sell total'].includes(normalized)) return 'SELL_TOTAL';
   if (['split', 'stock split'].includes(normalized)) return 'SPLIT';
@@ -360,6 +360,12 @@ export function mapToTransactions(
         message: 'Could not determine Buy/Sell action',
       });
       continue;
+    }
+
+    // Upgrade to TOTAL actions if forced by the brokerage detector (e.g. Questrade)
+    if (mapping.forceTotal) {
+      if (action === 'BUY') action = 'BUY_TOTAL';
+      if (action === 'SELL') action = 'SELL_TOTAL';
     }
 
     // Skip non-buy/sell for now (dividends, etc.)

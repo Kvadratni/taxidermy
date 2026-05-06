@@ -64,7 +64,6 @@ function buildMappingForFormat(
         commission: commission >= 0 ? commission : undefined,
         currency: currency >= 0 ? currency : undefined,
         settlementDate: settlement >= 0 ? settlement : undefined,
-        totalAmount: totalAmount >= 0 ? totalAmount : undefined,
       };
     }
 
@@ -96,21 +95,20 @@ function buildMappingForFormat(
       const action = headerIndex(headers, 'Action');
       const symbol = headerIndex(headers, 'Symbol');
       const quantity = headerIndex(headers, 'Quantity');
-      const price = headerIndex(headers, 'Price');
-      const commission = headerIndex(headers, 'Commission');
+      const netAmount = headerIndex(headers, 'Net Amount');
       const currency = headerIndex(headers, 'Currency');
 
-      if (date < 0 || action < 0 || symbol < 0 || quantity < 0 || price < 0) return null;
+      if (date < 0 || action < 0 || symbol < 0 || quantity < 0 || netAmount < 0) return null;
 
       return {
         date,
         action,
         symbol,
         quantity,
-        price,
-        commission: commission >= 0 ? commission : undefined,
+        price: netAmount,
         currency: currency >= 0 ? currency : undefined,
         settlementDate: settlement >= 0 ? settlement : undefined,
+        forceTotal: true,
       };
     }
 
